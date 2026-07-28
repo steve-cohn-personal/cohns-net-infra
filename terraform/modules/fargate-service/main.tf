@@ -143,7 +143,7 @@ resource "aws_lb_target_group" "this" {
 # HTTPS when a certificate is supplied; otherwise the app is served over plain
 # HTTP on 80 (dev-only).
 resource "aws_lb_listener" "https" {
-  count = var.certificate_arn == null ? 0 : 1
+  count = var.enable_https ? 1 : 0
 
   load_balancer_arn = aws_lb.this.arn
   port              = 443
@@ -163,13 +163,13 @@ resource "aws_lb_listener" "http" {
   protocol          = "HTTP"
 
   default_action {
-    # Redirect to HTTPS when we have a cert; otherwise serve directly.
-    type = var.certificate_arn == null ? "forward" : "redirect"
+    # Redirect to HTTPS when it's enabled; otherwise serve directly (dev-only).
+    type = var.enable_https ? "redirect" : "forward"
 
-    target_group_arn = var.certificate_arn == null ? aws_lb_target_group.this.arn : null
+    target_group_arn = var.enable_https ? null : aws_lb_target_group.this.arn
 
     dynamic "redirect" {
-      for_each = var.certificate_arn == null ? [] : [1]
+      for_each = var.enable_https ? [1] : []
       content {
         port        = "443"
         protocol    = "HTTPS"

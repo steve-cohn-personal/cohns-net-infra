@@ -66,8 +66,14 @@ variable "task_policy_arns" {
   default     = []
 }
 
+variable "enable_https" {
+  description = "Add the HTTPS listener. A static flag (not derived from certificate_arn, which is often an apply-time value) so resource count is known at plan."
+  type        = bool
+  default     = false
+}
+
 variable "certificate_arn" {
-  description = "ACM certificate ARN (regional) for the HTTPS listener. Null = HTTP only."
+  description = "ACM certificate ARN (regional) for the HTTPS listener. Required when enable_https is true."
   type        = string
   default     = null
 }

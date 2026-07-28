@@ -66,6 +66,7 @@ module "service" {
   public_subnet_ids = data.terraform_remote_state.data.outputs.public_subnet_ids
 
   image            = var.container_image
+  enable_https     = true
   certificate_arn  = aws_acm_certificate_validation.api.certificate_arn
   desired_count    = var.desired_count
   cpu_architecture = var.cpu_architecture
