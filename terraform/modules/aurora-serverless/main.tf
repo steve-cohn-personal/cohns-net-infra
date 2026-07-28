@@ -82,3 +82,21 @@ resource "aws_rds_cluster_instance" "this" {
 
   tags = var.tags
 }
+
+# A ready-to-attach policy granting read on THIS cluster's secret and nothing
+# else. The app's task/pod role attaches it (in the compute phase) so the service
+# can fetch its credentials at startup — least privilege, one secret.
+data "aws_iam_policy_document" "read_secret" {
+  statement {
+    sid       = "ReadDbSecret"
+    effect    = "Allow"
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [aws_rds_cluster.this.master_user_secret[0].secret_arn]
+  }
+}
+
+resource "aws_iam_policy" "read_secret" {
+  name   = "${var.name}-read-db-secret"
+  policy = data.aws_iam_policy_document.read_secret.json
+  tags   = var.tags
+}

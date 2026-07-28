@@ -12,8 +12,20 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="COMMENTS_", env_file=".env", extra="ignore")
 
-    # Async SQLAlchemy URL. Local: sqlite+aiosqlite. Prod: postgresql+asyncpg://...
+    # Async SQLAlchemy URL. Local/tests: sqlite+aiosqlite. Used directly unless
+    # db_secret_arn is set (see build_database_url).
     database_url: str = "sqlite+aiosqlite:///./comments.db"
+
+    # Production database via Secrets Manager. When db_secret_arn is set, the
+    # username/password are read from that secret (the RDS-managed master secret)
+    # at startup and combined with the host/port/name below — so no credential is
+    # ever in env, a tfvars, or an image. host/port/name come from the cluster
+    # endpoint (live/data outputs), which are not secret.
+    db_secret_arn: str | None = None
+    db_host: str | None = None
+    db_port: int = 5432
+    db_name: str = "commentsdb"
+    aws_region: str = "us-west-2"
 
     # JWT verification. HS256 with a shared secret is the local/first-commit mode.
     # Setting jwks_url (a Cognito user-pool JWKS endpoint) switches to RS256 later
@@ -45,6 +57,28 @@ class Settings(BaseSettings):
     # Create tables on startup. Convenient for local SQLite; in prod this is False
     # and Alembic migrations own the schema.
     auto_create_tables: bool = True
+
+    def build_database_url(self) -> str:
+        """The effective async SQLAlchemy URL.
+
+        With db_secret_arn set, fetch the RDS-managed credentials from Secrets
+        Manager and assemble a Postgres URL; otherwise use database_url as-is.
+        boto3 is imported lazily so local/test runs never need it.
+        """
+        if not self.db_secret_arn:
+            return self.database_url
+
+        import json
+        from urllib.parse import quote
+
+        import boto3
+
+        client = boto3.client("secretsmanager", region_name=self.aws_region)
+        secret = json.loads(client.get_secret_value(SecretId=self.db_secret_arn)["SecretString"])
+        user = quote(secret["username"], safe="")
+        password = quote(secret["password"], safe="")
+        host = self.db_host or ""
+        return f"postgresql+asyncpg://{user}:{password}@{host}:{self.db_port}/{self.db_name}"
 
 
 @lru_cache

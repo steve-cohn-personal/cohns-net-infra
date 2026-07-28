@@ -60,8 +60,21 @@ The schema is owned by Alembic in production (`COMMENTS_AUTO_CREATE_TABLES=false
 `alembic upgrade head` as an init step). Locally, `COMMENTS_AUTO_CREATE_TABLES=true` creates
 tables on boot for convenience.
 
+## Database credentials
+
+Two ways to get a connection, chosen by config:
+
+- **Local / tests** — `COMMENTS_DATABASE_URL` directly (SQLite, or the compose Postgres).
+- **Production** — set `COMMENTS_DB_SECRET_ARN` to the RDS-managed master secret (from `live/data`'s
+  `db_secret_arn` output). At startup the app reads the username/password from Secrets Manager and
+  combines them with `COMMENTS_DB_HOST` (the cluster endpoint), `COMMENTS_DB_PORT`, and
+  `COMMENTS_DB_NAME` (`commentsdb`). **No credential is ever in env, a tfvars, or the image.** The
+  task/pod role attaches `live/data`'s `db_read_secret_policy_arn` to be allowed `GetSecretValue` on
+  just that one secret.
+
 ## Configuration
 
 All via `COMMENTS_`-prefixed environment variables (see [`app/config.py`](app/config.py)):
-`DATABASE_URL`, `JWT_SECRET` / `JWKS_URL`, `MODERATOR_GROUP`, `RATE_LIMIT_POST`,
-`RATE_LIMIT_STORAGE`, `CORS_ORIGINS`, `AUTO_CREATE_TABLES`.
+`DATABASE_URL`, `DB_SECRET_ARN`, `DB_HOST`, `DB_PORT`, `DB_NAME`, `AWS_REGION`,
+`JWT_SECRET` / `JWKS_URL`, `MODERATOR_GROUP`, `RATE_LIMIT_POST`, `RATE_LIMIT_STORAGE`,
+`CORS_ORIGINS`, `AUTO_CREATE_TABLES`.

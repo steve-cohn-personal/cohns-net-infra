@@ -22,12 +22,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-postgres = ["asyncpg>=0.30"]
+# Production runtime: Postgres driver + boto3 for reading the DB secret.
+postgres = ["asyncpg>=0.30", "boto3>=1.35"]
 dev = [
     "aiosqlite>=0.20",
     "httpx>=0.27",
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
+    "boto3>=1.35",
 ]
 
 [tool.pytest.ini_options]

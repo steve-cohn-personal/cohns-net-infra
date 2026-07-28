@@ -32,3 +32,8 @@ output "cluster_arn" {
   description = "The cluster ARN."
   value       = aws_rds_cluster.this.arn
 }
+
+output "read_secret_policy_arn" {
+  description = "IAM policy granting GetSecretValue on the DB secret. Attach to the app's task/pod role."
+  value       = aws_iam_policy.read_secret.arn
+}

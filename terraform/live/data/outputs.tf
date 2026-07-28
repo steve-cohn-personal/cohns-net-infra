@@ -27,3 +27,8 @@ output "db_security_group_id" {
   description = "The cluster security group id."
   value       = module.db.security_group_id
 }
+
+output "db_read_secret_policy_arn" {
+  description = "Attach to the comments-api task/pod role so it can read its DB credentials."
+  value       = module.db.read_secret_policy_arn
+}
