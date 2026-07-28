@@ -57,6 +57,9 @@ venv/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+*.egg-info/
+# Local SQLite databases (dev/test); prod is Postgres/Aurora
+*.db
 
 # Node (site tooling)
 node_modules/

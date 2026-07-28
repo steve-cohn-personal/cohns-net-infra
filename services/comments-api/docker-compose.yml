@@ -1,0 +1,30 @@
+# Local development: the API against a real Postgres, mirroring prod (Aurora).
+#   docker compose up --build
+#   curl localhost:8000/healthz
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: comments
+      POSTGRES_PASSWORD: comments
+      POSTGRES_DB: comments
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U comments"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      COMMENTS_DATABASE_URL: postgresql+asyncpg://comments:comments@db:5432/comments
+      COMMENTS_JWT_SECRET: local-dev-secret-at-least-32-bytes-long!!
+      # Dev convenience — create tables on boot. In prod this is false and the
+      # migrations run as an init step (`alembic upgrade head`).
+      COMMENTS_AUTO_CREATE_TABLES: "true"
+      COMMENTS_CORS_ORIGINS: '["http://localhost:5173"]'
+    ports: ["8000:8000"]
