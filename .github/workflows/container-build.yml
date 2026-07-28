@@ -49,3 +49,8 @@ jobs:
             ${{ vars.ECR_REPOSITORY }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # Single manifest per push. Buildx's default provenance/SBOM attestations
+          # are stored as UNTAGGED child manifests, which the ECR lifecycle rule
+          # ("expire untagged") would later delete out from under the tagged image.
+          provenance: false
+          sbom: false
