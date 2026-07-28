@@ -100,6 +100,7 @@ module "service" {
     COMMENTS_DB_NAME            = data.terraform_remote_state.data.outputs.db_name
     COMMENTS_AWS_REGION         = var.region
     COMMENTS_AUTO_CREATE_TABLES = tostring(var.auto_create_tables)
+    COMMENTS_DB_NULLPOOL        = tostring(var.db_nullpool)
     COMMENTS_JWKS_URL           = var.jwks_url
     COMMENTS_CORS_ORIGINS       = jsonencode(var.cors_origins)
   }

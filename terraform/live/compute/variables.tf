@@ -59,6 +59,12 @@ variable "auto_create_tables" {
   default     = true
 }
 
+variable "db_nullpool" {
+  description = "Disable app connection pooling so Aurora can auto-pause when idle. True for light-traffic dev; a busier prod would pool (false)."
+  type        = bool
+  default     = false
+}
+
 variable "jwks_url" {
   description = "Cognito user-pool JWKS URL for RS256 verification. Empty until Cognito exists (Phase 3)."
   type        = string

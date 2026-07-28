@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     db_name: str = "commentsdb"
     aws_region: str = "us-west-2"
 
+    # Disable connection pooling (NullPool): open a connection per request and
+    # close it immediately, so nothing keeps the database open between requests.
+    # This lets an Aurora Serverless v2 cluster with min_capacity 0 auto-pause when
+    # idle — trading a few seconds of resume latency on the first request after a
+    # pause for a near-$0 idle bill. Worth it for a light-traffic service.
+    db_nullpool: bool = False
+
     # JWT verification. HS256 with a shared secret is the local/first-commit mode.
     # Setting jwks_url (a Cognito user-pool JWKS endpoint) switches to RS256 later
     # without touching the rest of the app — see app/auth.py.
