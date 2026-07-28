@@ -37,14 +37,14 @@ resource "aws_route53_record" "spf" {
   records = ["v=spf1 include:_spf.google.com ~all"]
 }
 
-# DMARC. Replicated as-is from GoDaddy; the rua address is GoDaddy's default
-# aggregate-report mailbox. Consider pointing rua at a mailbox you control now
-# that DNS is leaving GoDaddy.
+# DMARC. Aggregate reports go to a mailbox we own (same domain, so no external
+# _report._dmarc authorization record is needed). Still p=quarantine; move to
+# p=reject once DKIM is live and the rua reports show clean SPF/DKIM alignment.
 resource "aws_route53_record" "dmarc" {
   zone_id = aws_route53_zone.apex.zone_id
   name    = "_dmarc.${var.domain_name}"
   type    = "TXT"
   ttl     = 3600
 
-  records = ["v=DMARC1; p=quarantine; adkim=r; aspf=r; rua=mailto:dmarc_rua@onsecureserver.net;"]
+  records = ["v=DMARC1; p=quarantine; adkim=r; aspf=r; rua=mailto:steve@${var.domain_name};"]
 }
