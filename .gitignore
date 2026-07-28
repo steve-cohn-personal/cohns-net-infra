@@ -19,10 +19,10 @@ crash.*.log
 !*.example.tfvars
 !terraform.tfvars.example
 
-# Backend configs carry the account-specific state bucket name. Real ones are
-# gitignored; the *.example.backend.hcl templates are committed.
-*.backend.hcl
-!*.example.backend.hcl
+# Backend configs are committed: they hold only the management-account bucket name
+# (already public in this repo), key, and region — no secrets. CI needs them at
+# `terraform init`. The account-specific bits (role ARNs) live in tfvars, which
+# stay gitignored and are generated in CI from GitHub variables.
 
 # Terraform plan output is a serialized state diff — same risk as state.
 *.tfplan

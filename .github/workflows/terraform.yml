@@ -76,6 +76,11 @@ jobs:
         with:
           role-to-assume: ${{ vars.TF_PLAN_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+      - name: write tfvars
+        working-directory: ${{ env.LIVE_DIR }}
+        env:
+          TFVARS: ${{ vars.TF_TFVARS }}
+        run: printf '%s\n' "$TFVARS" > env/${{ matrix.environment }}.tfvars
       - name: init
         working-directory: ${{ env.LIVE_DIR }}
         run: terraform init -reconfigure -backend-config=env/${{ matrix.environment }}.backend.hcl
@@ -98,6 +103,11 @@ jobs:
         with:
           role-to-assume: ${{ vars.TF_APPLY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+      - name: write tfvars
+        working-directory: ${{ env.LIVE_DIR }}
+        env:
+          TFVARS: ${{ vars.TF_TFVARS }}
+        run: printf '%s\n' "$TFVARS" > env/dev.tfvars
       - name: init
         working-directory: ${{ env.LIVE_DIR }}
         run: terraform init -reconfigure -backend-config=env/dev.backend.hcl
@@ -123,6 +133,11 @@ jobs:
         with:
           role-to-assume: ${{ vars.TF_APPLY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+      - name: write tfvars
+        working-directory: ${{ env.LIVE_DIR }}
+        env:
+          TFVARS: ${{ vars.TF_TFVARS }}
+        run: printf '%s\n' "$TFVARS" > env/${{ inputs.environment }}.tfvars
       - name: init
         working-directory: ${{ env.LIVE_DIR }}
         run: terraform init -reconfigure -backend-config=env/${{ inputs.environment }}.backend.hcl
