@@ -10,6 +10,18 @@ variable "name_prefix" {
   default     = "cohns"
 }
 
+variable "github_org_id" {
+  description = "Numeric GitHub org id, for the immutable OIDC subject. Public."
+  type        = string
+  default     = "195600296"
+}
+
+variable "github_repo_id" {
+  description = "Numeric GitHub repo id, for the immutable OIDC subject. Public."
+  type        = string
+  default     = "1314380467"
+}
+
 variable "cloudtrail_name" {
   description = "Name of the org trail. Must match what live/shared-services trusts in the bucket policy."
   type        = string

@@ -33,8 +33,15 @@ data "aws_iam_policy_document" "route53_writer_trust" {
     actions = ["sts:AssumeRole"]
 
     principals {
-      type        = "AWS"
-      identifiers = ["arn:aws:iam::${var.prod_account_id}:root"]
+      type = "AWS"
+      identifiers = [
+        # Prod's own identities (the target/CI-in-prod model).
+        "arn:aws:iam::${var.prod_account_id}:root",
+        # The management-account CI role that runs prod's terraform apply and needs
+        # to write www/steve into the apex. Must already exist (live/org applied
+        # first). Scoped to the same www/steve record set as any other assumer.
+        "arn:aws:iam::${var.management_account_id}:role/gha-tf-prod",
+      ]
     }
   }
 }
