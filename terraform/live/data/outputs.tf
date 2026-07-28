@@ -3,6 +3,16 @@ output "vpc_id" {
   value       = module.network.vpc_id
 }
 
+output "public_subnet_ids" {
+  description = "Public subnets (ALB + Fargate tasks)."
+  value       = module.network.public_subnet_ids
+}
+
+output "private_subnet_ids" {
+  description = "Private subnets (database)."
+  value       = module.network.private_subnet_ids
+}
+
 output "db_endpoint" {
   description = "Aurora writer endpoint. The comments service connects here."
   value       = module.db.cluster_endpoint

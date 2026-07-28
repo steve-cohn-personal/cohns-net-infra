@@ -12,3 +12,8 @@ output "private_subnet_ids" {
   description = "Private subnet ids, one per AZ."
   value       = aws_subnet.private[*].id
 }
+
+output "public_subnet_ids" {
+  description = "Public subnet ids, one per AZ (ALB + Fargate tasks)."
+  value       = aws_subnet.public[*].id
+}
