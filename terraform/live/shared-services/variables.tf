@@ -57,9 +57,21 @@ variable "cloudtrail_home_region" {
 }
 
 variable "github_org" {
-  description = "GitHub org/owner, used only for the Repo tag."
+  description = "GitHub org/owner, used for the Repo tag and the ECR-push OIDC trust."
   type        = string
   default     = "steve-cohn-personal"
+}
+
+variable "github_org_id" {
+  description = "Numeric GitHub org id, for the immutable OIDC subject. Public."
+  type        = string
+  default     = "195600296"
+}
+
+variable "github_repo_id" {
+  description = "Numeric GitHub repo id, for the immutable OIDC subject. Public."
+  type        = string
+  default     = "1314380467"
 }
 
 variable "github_repo" {
