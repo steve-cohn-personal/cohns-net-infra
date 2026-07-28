@@ -6,12 +6,33 @@
 # moment Route53 becomes authoritative (the NS cutover). Get these in before
 # changing the nameservers at the registrar.
 #
-# Not present in the source zone and therefore not here: DKIM (google._domainkey
-# was empty — enable it in the Google Admin console for better deliverability,
-# then add its TXT record). If a domain-verification TXT is ever needed at the
-# apex, add it to aws_route53_record.spf below — Route53 allows only one TXT
-# record set per name, holding multiple quoted strings.
+# If a domain-verification TXT is ever needed at the apex, add it to
+# aws_route53_record.spf below — Route53 allows only one TXT record set per name,
+# holding multiple quoted strings.
 # ---------------------------------------------------------------------------
+
+locals {
+  # DKIM public key from Google Admin (Gmail > Authenticate email), 2048-bit,
+  # selector "google". Public by design — it lives in DNS for the world to read.
+  # A 2048-bit key exceeds the 255-char TXT string limit, so it is emitted as
+  # adjacent quoted strings within one record; resolvers concatenate them.
+  dkim_value = "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArUZjiJo2B3e/tgQPWlAOpI0INmMXuneVrc6V8sGJXu10VvGqARObXbJio7d8hxZ5UeNGIyjLFUhD9uQroDEhCiboboygOWtZCN/Y9PnqskzNe8k/UmEEoF4lpFzSJ4+cmhwVXZqut8AkC+bea72MzkNzq4bYBMfDV8DK2ockVBwkm8k0vP2qNnb1pUxqYfMwgEXf7yDYf9EpMpSWwSuCVYQYNxE3uP+KFHBi9H6HJNvTYPwlnnzsYcwghT+WD0T3Z73cHpibSquyH9aKXxFW9KzevAIjgldm35FqyJbXc54rLcUIXImf44waUX0zWGLVzjog6s7ArcSl7Dv6mpSMUQIDAQAB"
+
+  dkim_chunked = join("\"\"", [
+    for i in range(0, length(local.dkim_value), 255) : substr(local.dkim_value, i, 255)
+  ])
+}
+
+# DKIM. Selector google._domainkey. After this resolves, click "Start
+# authentication" in the Google Admin console to activate signing.
+resource "aws_route53_record" "dkim" {
+  zone_id = aws_route53_zone.apex.zone_id
+  name    = "google._domainkey.${var.domain_name}"
+  type    = "TXT"
+  ttl     = 3600
+
+  records = [local.dkim_chunked]
+}
 
 resource "aws_route53_record" "mx" {
   zone_id = aws_route53_zone.apex.zone_id
