@@ -12,12 +12,18 @@
 locals {
   github_oidc_url = "https://token.actions.githubusercontent.com"
 
+  # GitHub issues OIDC subjects in the IMMUTABLE form, with the numeric org and
+  # repo ids baked in: repo:<org>@<org_id>/<repo>@<repo_id>:<context>. Pinning the
+  # ids (not just the names) is what makes this tamper-proof — deleting and
+  # recreating a repo of the same name yields a new id and cannot assume the role.
+  repo_ref = "repo:${var.github_org}@${var.github_org_id}/${var.github_repo}@${var.github_repo_id}"
+
   # Each entry becomes an allowed `sub` claim. Branch and environment scoping is
   # what stops a PR from a fork from assuming the production deploy role.
   allowed_subjects = concat(
-    [for b in var.allowed_branches : "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/${b}"],
-    [for e in var.allowed_environments : "repo:${var.github_org}/${var.github_repo}:environment:${e}"],
-    [for t in var.allowed_tag_patterns : "repo:${var.github_org}/${var.github_repo}:ref:refs/tags/${t}"],
+    [for b in var.allowed_branches : "${local.repo_ref}:ref:refs/heads/${b}"],
+    [for e in var.allowed_environments : "${local.repo_ref}:environment:${e}"],
+    [for t in var.allowed_tag_patterns : "${local.repo_ref}:ref:refs/tags/${t}"],
   )
 }
 

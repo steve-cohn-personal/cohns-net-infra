@@ -60,6 +60,18 @@ variable "github_repo" {
   default     = "cohns-net-infra"
 }
 
+variable "github_org_id" {
+  description = "Numeric GitHub org id, for the immutable OIDC subject. Public; from `gh api users/<org> --jq .id`."
+  type        = string
+  default     = "195600296"
+}
+
+variable "github_repo_id" {
+  description = "Numeric GitHub repo id, for the immutable OIDC subject. Public; from `gh api repos/<org>/<repo> --jq .id`."
+  type        = string
+  default     = "1314380467"
+}
+
 variable "deploy_allowed_branches" {
   description = "Branches allowed to deploy to this environment. prod should be empty — it deploys via the environment gate only."
   type        = list(string)

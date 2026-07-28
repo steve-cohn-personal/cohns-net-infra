@@ -8,6 +8,16 @@ variable "github_repo" {
   type        = string
 }
 
+variable "github_org_id" {
+  description = "Numeric GitHub org/owner id, part of the immutable OIDC subject. Public (queryable via the API); stable for the life of the org."
+  type        = string
+}
+
+variable "github_repo_id" {
+  description = "Numeric GitHub repository id, part of the immutable OIDC subject. Changes if the repo is deleted and recreated — which is the point."
+  type        = string
+}
+
 variable "role_name" {
   description = "Name of the IAM role GitHub Actions will assume."
   type        = string

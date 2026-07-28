@@ -66,9 +66,11 @@ module "site" {
 module "deploy_role" {
   source = "../../modules/github-oidc"
 
-  github_org  = var.github_org
-  github_repo = var.github_repo
-  role_name   = "gha-site-deploy-${var.environment}"
+  github_org     = var.github_org
+  github_repo    = var.github_repo
+  github_org_id  = var.github_org_id
+  github_repo_id = var.github_repo_id
+  role_name      = "gha-site-deploy-${var.environment}"
 
   allowed_branches     = var.deploy_allowed_branches
   allowed_environments = [var.environment]
