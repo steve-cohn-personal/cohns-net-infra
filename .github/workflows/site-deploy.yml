@@ -1,0 +1,58 @@
+name: deploy-site
+
+# Content deploys are separate from infrastructure applies. Editing a paragraph
+# should not require a Terraform plan, and a Terraform change should not silently
+# republish content.
+
+on:
+  push:
+    branches: [main]
+    paths: ['site/**', '.github/workflows/site-deploy.yml']
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to publish to
+        required: true
+        type: choice
+        options: [dev, stage, prod]
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: us-west-2
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'dev' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.SITE_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Long cache on fingerprinted assets, no cache on HTML, so a deploy is
+      # visible immediately without giving up caching on everything else.
+      - name: sync assets
+        run: |
+          aws s3 sync site/ "s3://${{ vars.SITE_BUCKET }}/" \
+            --delete \
+            --exclude '*.html' \
+            --cache-control 'public,max-age=31536000,immutable'
+
+      - name: sync html
+        run: |
+          aws s3 sync site/ "s3://${{ vars.SITE_BUCKET }}/" \
+            --delete \
+            --exclude '*' --include '*.html' \
+            --cache-control 'public,max-age=0,must-revalidate'
+
+      - name: invalidate cdn
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ vars.SITE_DISTRIBUTION_ID }}" \
+            --paths '/*'

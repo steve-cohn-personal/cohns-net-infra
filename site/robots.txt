@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# The family photo area is private and served from a separate, authenticated
+# origin. It is disallowed here as defence in depth, not as its access control.
+Disallow: /family/
+
+Sitemap: https://www.cohns.net/sitemap.xml

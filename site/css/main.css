@@ -1,0 +1,168 @@
+/* cohns.net — placeholder styling.
+   Kept in an external file rather than inline because the CloudFront CSP set in
+   modules/static-site forbids inline styles. */
+
+:root {
+  --bg: #0f1115;
+  --surface: #171a21;
+  --border: #262b35;
+  --text: #e6e8ec;
+  --muted: #9aa3b2;
+  --accent: #5eb0ef;
+  --max: 62rem;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #fbfbfc;
+    --surface: #ffffff;
+    --border: #e3e6ea;
+    --text: #1a1d23;
+    --muted: #5d6673;
+    --accent: #1f6fb2;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.65 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* --- masthead --- */
+
+.masthead {
+  border-bottom: 1px solid var(--border);
+  padding: 4.5rem 0 3rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.masthead h1 {
+  margin: 0;
+  font-size: clamp(2.25rem, 6vw, 3.5rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.tagline {
+  margin: 0.75rem 0 0;
+  font-size: 1.15rem;
+  color: var(--muted);
+}
+
+.build-note {
+  margin: 2rem 0 0;
+  max-width: 44rem;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+/* --- cards --- */
+
+main {
+  display: grid;
+  gap: 1.25rem;
+  padding: 3rem 1.5rem;
+}
+
+@media (min-width: 48rem) {
+  main { grid-template-columns: repeat(2, 1fr); }
+  #engineering { grid-column: 1 / -1; }
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.75rem;
+}
+
+.card h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.35rem;
+  letter-spacing: -0.01em;
+}
+
+.card p { margin: 0 0 1rem; color: var(--muted); }
+.card p:last-child { margin-bottom: 0; }
+
+.placeholder {
+  display: inline-block;
+  padding: 0.3rem 0.7rem;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* --- skills --- */
+
+.skills {
+  list-style: none;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem 2rem;
+}
+
+@media (min-width: 40rem) {
+  .skills { grid-template-columns: repeat(2, 1fr); }
+}
+
+.skills li {
+  font-size: 0.925rem;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+}
+
+.skills span {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+/* --- links --- */
+
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:hover { text-decoration-thickness: 2px; }
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin: 0;
+  font-size: 0.925rem;
+}
+
+/* --- footer --- */
+
+footer {
+  border-top: 1px solid var(--border);
+  padding: 2rem 1.5rem 4rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}

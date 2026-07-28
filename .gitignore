@@ -1,0 +1,76 @@
+# ---------------------------------------------------------------------------
+# This repository is PUBLIC. Nothing secret may ever be committed.
+# When in doubt, add it here first and ask questions second.
+# ---------------------------------------------------------------------------
+
+# Terraform state — may contain secrets in plaintext. State lives in S3, not git.
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl.bak
+crash.log
+crash.*.log
+
+# Variable files frequently hold account IDs, ARNs, and secrets.
+# Committed exceptions are whitelisted explicitly below.
+*.tfvars
+*.tfvars.json
+!*.example.tfvars
+!terraform.tfvars.example
+
+# Backend configs carry the account-specific state bucket name. Real ones are
+# gitignored; the *.example.backend.hcl templates are committed.
+*.backend.hcl
+!*.example.backend.hcl
+
+# Terraform plan output is a serialized state diff — same risk as state.
+*.tfplan
+plan.out
+
+# Credentials, keys, certs
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+credentials
+aws_credentials
+.aws/
+id_rsa*
+id_ed25519*
+
+# Ansible
+*.retry
+ansible/inventory/*.local
+vault_pass.txt
+.vault_pass
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node (site tooling)
+node_modules/
+dist/
+.cache/
+
+# Editors / OS
+.DS_Store
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Lock files belong to root modules only. In child modules they are artifacts of
+# a standalone `terraform init` and go stale silently.
+terraform/modules/*/.terraform.lock.hcl

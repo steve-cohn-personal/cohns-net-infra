@@ -1,0 +1,131 @@
+name: terraform
+
+# Plan on every pull request; apply on the way to production.
+#
+# Note the total absence of AWS secrets in this file. `id-token: write` lets the
+# runner request an OIDC token, which aws-actions/configure-aws-credentials trades
+# for short-lived credentials. The role ARN is public information.
+
+on:
+  pull_request:
+    paths: ['terraform/**', '.github/workflows/terraform.yml']
+  push:
+    branches: [main]
+    paths: ['terraform/**']
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to apply
+        required: true
+        type: choice
+        options: [dev, stage, prod]
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+env:
+  TF_VERSION: '1.10.4'
+  AWS_REGION: us-west-2
+  LIVE_DIR: terraform/live/site
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      - name: fmt
+        run: terraform fmt -check -recursive terraform bootstrap
+      - name: validate
+        run: |
+          set -e
+          for d in bootstrap terraform/modules/* terraform/live/*; do
+            [ -f "$d/versions.tf" ] || continue
+            # A module declaring configuration_aliases cannot be validated as a
+            # root module — the aliases are declared but never configured, and
+            # Terraform reports a misleading "provider configuration not present".
+            # Such modules are covered by the root modules that consume them.
+            if grep -q 'configuration_aliases' "$d/versions.tf"; then
+              echo "==> $d (skipped: configuration_aliases)"
+              continue
+            fi
+            echo "==> $d"
+            terraform -chdir="$d" init -backend=false -input=false >/dev/null
+            terraform -chdir="$d" validate
+          done
+
+  plan:
+    needs: lint
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [dev, stage, prod]
+    environment: ${{ matrix.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.TF_PLAN_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: init
+        working-directory: ${{ env.LIVE_DIR }}
+        run: terraform init -reconfigure -backend-config=env/${{ matrix.environment }}.backend.hcl
+      - name: plan
+        working-directory: ${{ env.LIVE_DIR }}
+        run: terraform plan -no-color -input=false -var-file=env/${{ matrix.environment }}.tfvars
+
+  # dev applies automatically on merge. This is the whole point of dev.
+  apply-dev:
+    needs: lint
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.TF_APPLY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: init
+        working-directory: ${{ env.LIVE_DIR }}
+        run: terraform init -reconfigure -backend-config=env/dev.backend.hcl
+      - name: apply
+        working-directory: ${{ env.LIVE_DIR }}
+        run: terraform apply -auto-approve -input=false -var-file=env/dev.tfvars
+
+  # stage and prod run only from workflow_dispatch. The gate is the GitHub
+  # Environment's required-reviewer setting, not anything in this file — which is
+  # the point: the approval lives where it can't be edited by the same PR that
+  # changes the infrastructure.
+  apply-manual:
+    needs: lint
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.TF_APPLY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: init
+        working-directory: ${{ env.LIVE_DIR }}
+        run: terraform init -reconfigure -backend-config=env/${{ inputs.environment }}.backend.hcl
+      - name: apply
+        working-directory: ${{ env.LIVE_DIR }}
+        run: terraform apply -auto-approve -input=false -var-file=env/${{ inputs.environment }}.tfvars
