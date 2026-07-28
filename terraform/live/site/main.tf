@@ -52,10 +52,11 @@ module "site" {
     aws.dns       = aws.dns
   }
 
-  domain_name            = var.domain_name
-  alternate_domain_names = var.alternate_domain_names
-  hosted_zone_id         = local.site_zone_id
-  price_class            = var.price_class
+  domain_name             = var.domain_name
+  alternate_domain_names  = var.alternate_domain_names
+  hosted_zone_id          = local.site_zone_id
+  price_class             = var.price_class
+  content_security_policy = var.content_security_policy
 
   tags = local.tags
 }

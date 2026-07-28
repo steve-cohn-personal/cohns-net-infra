@@ -48,6 +48,12 @@ variable "price_class" {
   default     = "PriceClass_100"
 }
 
+variable "content_security_policy" {
+  description = "CSP override. Null keeps the module's strict default; set it to also allow the recipes API + media CDN (connect/media/img) for the cooking pages."
+  type        = string
+  default     = null
+}
+
 variable "github_org" {
   description = "GitHub org or user owning the infrastructure repo."
   type        = string

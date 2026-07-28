@@ -1,0 +1,22 @@
+[
+  {
+    "slug": "pan-con-tomate",
+    "title": "Pan con Tomate",
+    "summary": "The simplest good thing — bread, ripe tomato, good oil, salt.",
+    "ingredients": [
+      "1 loaf crusty bread",
+      "2 very ripe tomatoes",
+      "Extra-virgin olive oil",
+      "Flaky salt",
+      "1 clove garlic (optional)"
+    ],
+    "steps": [
+      "Toast thick slices of bread until golden.",
+      "Rub with the cut garlic clove, if using.",
+      "Halve a tomato and rub the cut side into the bread until only skin is left.",
+      "Drizzle generously with olive oil and finish with flaky salt."
+    ],
+    "hero_image_url": null,
+    "video_key": "lessons/demo"
+  }
+]

@@ -196,6 +196,29 @@ resource "aws_cloudfront_response_headers_policy" "this" {
   }
 }
 
+# With OAC (S3 REST origin, not the website endpoint) CloudFront only serves an
+# index document for "/". This viewer-request function rewrites "/dir/" -> the
+# index and extensionless clean URLs too, so /recipes/ resolves.
+resource "aws_cloudfront_function" "index_rewrite" {
+  name    = "${replace(var.domain_name, ".", "-")}-index-rewrite"
+  runtime = "cloudfront-js-2.0"
+  comment = "Directory-index rewriting for ${var.domain_name}"
+  publish = true
+
+  code = <<-EOT
+    function handler(event) {
+      var request = event.request;
+      var uri = request.uri;
+      if (uri.endsWith("/")) {
+        request.uri = uri + "index.html";
+      } else if (!uri.split("/").pop().includes(".")) {
+        request.uri = uri + "/index.html";
+      }
+      return request;
+    }
+  EOT
+}
+
 resource "aws_cloudfront_distribution" "this" {
   enabled             = true
   is_ipv6_enabled     = true
@@ -222,6 +245,11 @@ resource "aws_cloudfront_distribution" "this" {
     cache_policy_id            = data.aws_cloudfront_cache_policy.optimized.id
     origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.cors_s3.id
     response_headers_policy_id = aws_cloudfront_response_headers_policy.this.id
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.index_rewrite.arn
+    }
   }
 
   # Serve the styled 404 page rather than CloudFront's XML error document.
