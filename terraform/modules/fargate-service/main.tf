@@ -42,6 +42,27 @@ resource "aws_iam_role_policy_attachment" "execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+# The EXECUTION role (not the task role) fetches `secrets` valueFrom references at
+# container launch, so it needs read on exactly those secrets.
+data "aws_iam_policy_document" "exec_secrets" {
+  count = length(var.secrets) > 0 ? 1 : 0
+
+  statement {
+    sid       = "InjectSecrets"
+    effect    = "Allow"
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = values(var.secrets)
+  }
+}
+
+resource "aws_iam_role_policy" "exec_secrets" {
+  count = length(var.secrets) > 0 ? 1 : 0
+
+  name   = "${var.name}-exec-secrets"
+  role   = aws_iam_role.execution.id
+  policy = data.aws_iam_policy_document.exec_secrets[0].json
+}
+
 # Task role: the application's own permissions (e.g. read its DB secret).
 resource "aws_iam_role" "task" {
   name               = "${var.name}-task"
@@ -203,6 +224,7 @@ resource "aws_ecs_task_definition" "this" {
     portMappings = [{ containerPort = var.container_port, protocol = "tcp" }]
 
     environment = [for k, v in var.environment : { name = k, value = v }]
+    secrets     = [for k, v in var.secrets : { name = k, valueFrom = v }]
 
     logConfiguration = {
       logDriver = "awslogs"

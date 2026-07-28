@@ -60,6 +60,12 @@ variable "environment" {
   default     = {}
 }
 
+variable "secrets" {
+  description = "Secret env vars: env-var name => Secrets Manager ARN (whole-string secret). Injected via ECS valueFrom; the execution role is granted GetSecretValue on them."
+  type        = map(string)
+  default     = {}
+}
+
 variable "task_policy_arns" {
   description = "IAM policy ARNs to attach to the task role (e.g. the DB-secret read policy)."
   type        = list(string)
