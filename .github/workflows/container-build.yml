@@ -1,0 +1,51 @@
+name: container-build
+
+# Build the comments-api image on every change to it. PRs build only (proves the
+# Dockerfile); pushes to main build and push to ECR, tagged by commit sha and
+# latest. Keyless — the push credential comes from OIDC, no secret in the repo.
+
+on:
+  pull_request:
+    paths: ['services/comments-api/**', '.github/workflows/container-build.yml']
+  push:
+    branches: [main]
+    paths: ['services/comments-api/**', '.github/workflows/container-build.yml']
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: us-west-2
+  CONTEXT: services/comments-api
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      # Authenticate + log in to ECR only when we intend to push (main). PR builds
+      # need no AWS access at all.
+      - name: configure aws credentials
+        if: github.event_name == 'push'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.ECR_PUSH_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: log in to Amazon ECR
+        if: github.event_name == 'push'
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: build (push on main)
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.CONTEXT }}
+          push: ${{ github.event_name == 'push' }}
+          tags: |
+            ${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
+            ${{ vars.ECR_REPOSITORY }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
