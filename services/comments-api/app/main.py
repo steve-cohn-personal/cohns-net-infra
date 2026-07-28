@@ -10,7 +10,7 @@ from app.config import get_settings
 from app.db import engine
 from app.models import Base
 from app.ratelimit import limiter
-from app.routers import comments, moderation
+from app.routers import comments, moderation, recipes
 
 settings = get_settings()
 
@@ -25,9 +25,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="cohns.net comments API",
-    version="0.1.0",
-    summary="Auth-gated, moderated, rate-limited comments.",
+    title="cohns.net content API",
+    version="0.2.0",
+    summary="Auth-gated, moderated comments; authored recipes with lesson videos.",
     lifespan=lifespan,
 )
 
@@ -47,12 +47,13 @@ app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PUT"],
     allow_headers=["Authorization", "Content-Type"],
 )
 
 app.include_router(comments.router)
 app.include_router(moderation.router)
+app.include_router(recipes.router)
 
 
 @app.get("/healthz", tags=["health"])

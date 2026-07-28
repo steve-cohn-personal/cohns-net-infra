@@ -34,3 +34,42 @@ class CommentAdmin(CommentPublic):
 
 class ModerationAction(BaseModel):
     decision: CommentStatus = Field(description="approved or rejected")
+
+
+# --- Recipes ---------------------------------------------------------------
+
+
+class RecipeWrite(BaseModel):
+    """Create/update payload (moderator only)."""
+
+    slug: str = Field(min_length=1, max_length=200, pattern=r"^[a-z0-9][a-z0-9-]*$")
+    title: str = Field(min_length=1, max_length=200)
+    summary: str | None = Field(default=None, max_length=2000)
+    ingredients: list[str] = Field(default_factory=list)
+    steps: list[str] = Field(default_factory=list)
+    hero_image_url: str | None = Field(default=None, max_length=500)
+    video_key: str | None = Field(default=None, max_length=300)
+    published: bool = False
+
+
+class RecipePublic(BaseModel):
+    """What readers see."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    slug: str
+    title: str
+    summary: str | None
+    ingredients: list[str]
+    steps: list[str]
+    hero_image_url: str | None
+    video_key: str | None
+
+
+class RecipeAdmin(RecipePublic):
+    """What an author sees — includes draft state and id."""
+
+    id: uuid.UUID
+    published: bool
+    created_at: datetime
+    updated_at: datetime
