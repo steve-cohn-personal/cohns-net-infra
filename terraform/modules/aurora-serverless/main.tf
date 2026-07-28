@@ -19,7 +19,7 @@ resource "aws_db_subnet_group" "this" {
 
 resource "aws_security_group" "this" {
   name        = "${var.name}-db"
-  description = "Aurora ${var.name} — Postgres access"
+  description = "Aurora ${var.name} Postgres access"
   vpc_id      = var.vpc_id
   tags        = merge(var.tags, { Name = "${var.name}-db" })
 }

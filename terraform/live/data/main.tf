@@ -29,10 +29,11 @@ module "db" {
 
   database_name = var.database_name
 
-  min_acu             = var.min_acu
-  max_acu             = var.max_acu
-  skip_final_snapshot = var.skip_final_snapshot
-  deletion_protection = var.deletion_protection
+  min_acu                  = var.min_acu
+  max_acu                  = var.max_acu
+  seconds_until_auto_pause = var.seconds_until_auto_pause
+  skip_final_snapshot      = var.skip_final_snapshot
+  deletion_protection      = var.deletion_protection
 
   tags = local.tags
 }

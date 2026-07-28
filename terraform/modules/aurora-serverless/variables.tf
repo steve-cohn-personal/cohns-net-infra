@@ -19,9 +19,9 @@ variable "allowed_ingress_cidrs" {
 }
 
 variable "database_name" {
-  description = "Initial database created in the cluster."
+  description = "Initial database created in the cluster. Avoid engine reserved words (e.g. 'comments' is reserved for aurora-postgresql)."
   type        = string
-  default     = "comments"
+  default     = "commentsdb"
 }
 
 variable "master_username" {

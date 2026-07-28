@@ -27,9 +27,9 @@ variable "vpc_cidr" {
 }
 
 variable "database_name" {
-  description = "Initial database in the cluster."
+  description = "Initial database in the cluster. Note: 'comments' is a reserved word for aurora-postgresql, so the app's DB is 'commentsdb'."
   type        = string
-  default     = "comments"
+  default     = "commentsdb"
 }
 
 variable "min_acu" {
@@ -42,6 +42,12 @@ variable "max_acu" {
   description = "Maximum Aurora Capacity Units."
   type        = number
   default     = 2
+}
+
+variable "seconds_until_auto_pause" {
+  description = "Idle seconds before scaling to 0 ACU (300-86400). Dev pauses fast to save cost."
+  type        = number
+  default     = 300
 }
 
 variable "skip_final_snapshot" {
