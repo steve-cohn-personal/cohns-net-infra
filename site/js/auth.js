@@ -174,8 +174,9 @@
     return fetch(url, opts);
   }
 
-  // Run the code exchange if we landed on the OAuth redirect. Returns the path to
-  // restore (or null). Kept side-effect-light so pages can await it before painting.
+  // Run the code exchange if we landed on the OAuth redirect. The registered
+  // callback is always the origin root, so a user who started on another page
+  // (e.g. /family/) is sent back there with a real navigation once tokens are in.
   async function handleRedirect() {
     var params = new URLSearchParams(location.search);
     var code = params.get("code");
@@ -185,17 +186,24 @@
     try { pending = JSON.parse(sessionStorage.getItem(VERIFIER_KEY)); } catch (e) { /* ignore */ }
     sessionStorage.removeItem(VERIFIER_KEY);
 
-    // Drop the code/state from the URL regardless of outcome.
-    var returnPath = (pending && pending.returnPath) || location.pathname;
-    history.replaceState({}, document.title, returnPath);
-
-    if (!pending || pending.state !== params.get("state")) return returnPath; // CSRF guard
-    try {
-      var tokens = await exchangeCode(code, pending.verifier);
-      saveTokens(tokens);
-    } catch (e) {
-      console.error(e);
+    var returnPath = (pending && pending.returnPath) || "/";
+    var ok = false;
+    if (pending && pending.state === params.get("state")) { // CSRF guard
+      try {
+        saveTokens(await exchangeCode(code, pending.verifier));
+        ok = true;
+      } catch (e) {
+        console.error(e);
+      }
     }
+
+    // If the exchange landed us somewhere other than where sign-in began, go there;
+    // otherwise just strip the code/state from the URL in place.
+    if (ok && returnPath.split("?")[0] !== location.pathname) {
+      location.replace(returnPath);
+      return returnPath;
+    }
+    history.replaceState({}, document.title, returnPath);
     return returnPath;
   }
 
