@@ -56,6 +56,28 @@ variable "cloudtrail_home_region" {
   default     = "us-west-2"
 }
 
+variable "auth_callback_urls" {
+  description = "OAuth callback URLs for the Cognito web client (site origins + local dev)."
+  type        = list(string)
+  default = [
+    "https://www.cohns.net/",
+    "https://steve.cohns.net/",
+    "https://dev.cohns.net/",
+    "https://stage.cohns.net/",
+    "http://localhost:5173/",
+  ]
+}
+
+variable "auth_logout_urls" {
+  description = "Post-logout redirect URLs for the Cognito web client."
+  type        = list(string)
+  default = [
+    "https://www.cohns.net/",
+    "https://dev.cohns.net/",
+    "http://localhost:5173/",
+  ]
+}
+
 variable "github_org" {
   description = "GitHub org/owner, used for the Repo tag and the ECR-push OIDC trust."
   type        = string
