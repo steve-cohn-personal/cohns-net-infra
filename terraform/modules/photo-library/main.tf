@@ -163,10 +163,10 @@ resource "aws_lambda_function" "list" {
 
   environment {
     variables = {
-      PHOTO_BUCKET     = aws_s3_bucket.photos.id
-      FAMILY_GROUP     = var.family_group
-      URL_TTL_SECONDS  = tostring(var.url_ttl_seconds)
-      CORS_ORIGINS     = join(",", var.cors_origins)
+      PHOTO_BUCKET    = aws_s3_bucket.photos.id
+      FAMILY_GROUP    = var.family_group
+      URL_TTL_SECONDS = tostring(var.url_ttl_seconds)
+      CORS_ORIGINS    = join(",", var.cors_origins)
     }
   }
 
