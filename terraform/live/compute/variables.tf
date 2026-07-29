@@ -65,12 +65,6 @@ variable "db_nullpool" {
   default     = false
 }
 
-variable "jwks_url" {
-  description = "Cognito user-pool JWKS URL for RS256 verification. Empty until Cognito exists (Phase 3)."
-  type        = string
-  default     = ""
-}
-
 variable "cors_origins" {
   description = "Allowed CORS origins for the API."
   type        = list(string)

@@ -56,24 +56,15 @@ resource "aws_acm_certificate_validation" "api" {
   validation_record_fqdns = [for r in aws_route53_record.cert_validation : r.fqdn]
 }
 
-# JWT signing key (HS256): generated, stored in Secrets Manager, injected into the
-# container by ECS at launch. Replaces the built-in dev default so no one can forge
-# tokens with a known secret. (When Cognito lands, set jwks_url instead and this
-# becomes unnecessary.) The generated value lives in state, which is encrypted in
-# the management-account bucket — acceptable for a signing key.
-resource "random_password" "jwt" {
-  length  = 64
-  special = false
-}
-
-resource "aws_secretsmanager_secret" "jwt" {
-  name = "comments-${var.environment}-jwt-secret"
-  tags = local.tags
-}
-
-resource "aws_secretsmanager_secret_version" "jwt" {
-  secret_id     = aws_secretsmanager_secret.jwt.id
-  secret_string = random_password.jwt.result
+# Cognito (shared-services) is the token issuer. The app verifies tokens via the
+# pool's JWKS (RS256) — no shared HS256 secret to generate, store, or inject.
+data "terraform_remote_state" "shared" {
+  backend = "s3"
+  config = {
+    bucket = "cohns-tfstate-562995958167"
+    key    = "shared-services/terraform.tfstate"
+    region = "us-west-2"
+  }
 }
 
 module "service" {
@@ -101,16 +92,15 @@ module "service" {
     COMMENTS_AWS_REGION         = var.region
     COMMENTS_AUTO_CREATE_TABLES = tostring(var.auto_create_tables)
     COMMENTS_DB_NULLPOOL        = tostring(var.db_nullpool)
-    COMMENTS_JWKS_URL           = var.jwks_url
-    COMMENTS_CORS_ORIGINS       = jsonencode(var.cors_origins)
+    # Verify Cognito-issued tokens (RS256 via JWKS). Audience = the app client id
+    # (ID tokens carry it); issuer pins the pool.
+    COMMENTS_JWKS_URL     = data.terraform_remote_state.shared.outputs.cognito_jwks_url
+    COMMENTS_JWT_ISSUER   = data.terraform_remote_state.shared.outputs.cognito_issuer
+    COMMENTS_JWT_AUDIENCE = data.terraform_remote_state.shared.outputs.cognito_client_id
+    COMMENTS_CORS_ORIGINS = jsonencode(var.cors_origins)
   }
 
   task_policy_arns = [data.terraform_remote_state.data.outputs.db_read_secret_policy_arn]
-
-  # Injected at launch from Secrets Manager, not baked into the image or env.
-  secrets = {
-    COMMENTS_JWT_SECRET = aws_secretsmanager_secret.jwt.arn
-  }
 
   tags = local.tags
 }
