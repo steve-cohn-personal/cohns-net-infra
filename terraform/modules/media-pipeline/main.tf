@@ -226,6 +226,7 @@ resource "aws_cloudfront_distribution" "media" {
   is_ipv6_enabled = true
   comment         = "${var.name} media"
   price_class     = "PriceClass_100"
+  aliases         = var.domain_name == null ? [] : [var.domain_name]
 
   origin {
     domain_name              = aws_s3_bucket.output.bucket_regional_domain_name
@@ -248,7 +249,10 @@ resource "aws_cloudfront_distribution" "media" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    cloudfront_default_certificate = var.certificate_arn == null
+    acm_certificate_arn            = var.certificate_arn
+    ssl_support_method             = var.certificate_arn == null ? null : "sni-only"
+    minimum_protocol_version       = var.certificate_arn == null ? null : "TLSv1.2_2021"
   }
 
   tags = var.tags

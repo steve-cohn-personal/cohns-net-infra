@@ -9,8 +9,13 @@ output "output_bucket" {
 }
 
 output "media_cdn_domain" {
-  description = "CloudFront domain serving the transcoded media. Build recipe video URLs from this + <video_key>/hls/…"
+  description = "CloudFront domain serving the transcoded media (the *.cloudfront.net name)."
   value       = aws_cloudfront_distribution.media.domain_name
+}
+
+output "cloudfront_hosted_zone_id" {
+  description = "The distribution's hosted zone id, for a Route53 alias record."
+  value       = aws_cloudfront_distribution.media.hosted_zone_id
 }
 
 output "mediaconvert_role_arn" {

@@ -15,7 +15,7 @@
   }
 
   // The media CDN that serves transcoded lesson videos (live/media output).
-  var MEDIA_CDN = "https://d1zh8txcefnku4.cloudfront.net";
+  var MEDIA_CDN = "https://media.cohns.net";
 
   function hlsUrl(videoKey) {
     var name = videoKey.split("/").pop();

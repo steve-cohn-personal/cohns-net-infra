@@ -8,8 +8,13 @@ output "output_bucket" {
   value       = module.media.output_bucket
 }
 
+output "media_url" {
+  description = "Custom media base URL. A recipe video plays from https://media.cohns.net/<video_key>/hls/…"
+  value       = "https://${var.domain_name}"
+}
+
 output "media_cdn_domain" {
-  description = "CloudFront domain for playback. A recipe video plays from https://<this>/<video_key>/hls/…"
+  description = "The underlying *.cloudfront.net domain."
   value       = module.media.media_cdn_domain
 }
 
