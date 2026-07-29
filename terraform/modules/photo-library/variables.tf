@@ -42,6 +42,12 @@ variable "noncurrent_version_expiration_days" {
   default     = 7
 }
 
+variable "list_lambda_memory_mb" {
+  description = "Memory (and thus CPU) for the list Lambda. Presigning scales with photo count; ~1.8 GB = a full vCPU."
+  type        = number
+  default     = 1769
+}
+
 variable "tags" {
   description = "Tags applied to every resource."
   type        = map(string)

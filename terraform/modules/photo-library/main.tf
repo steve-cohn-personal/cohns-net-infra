@@ -154,6 +154,13 @@ resource "aws_lambda_function" "list" {
   source_code_hash = data.archive_file.lambda.output_base64sha256
   timeout          = 15
 
+  # The list endpoint mints a presigned URL for every photo's thumb AND full image
+  # on each request — pure SigV4 crypto, so it's CPU-bound. Lambda CPU scales with
+  # memory, and at the 128 MB default a full library (~1.4k photos = ~2.9k signings)
+  # blew past the 15 s timeout. ~1.8 GB gives a full vCPU, dropping it to a few
+  # seconds. The function only runs on page loads, so the cost is negligible.
+  memory_size = var.list_lambda_memory_mb
+
   environment {
     variables = {
       PHOTO_BUCKET     = aws_s3_bucket.photos.id
