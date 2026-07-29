@@ -46,6 +46,26 @@ resource "aws_s3_bucket_versioning" "photos" {
   versioning_configuration { status = "Enabled" }
 }
 
+# Versioning keeps a curated re-populate safe (an accidental overwrite is
+# recoverable), but the populate script syncs with --delete, so every re-run would
+# otherwise leave the replaced objects lingering as noncurrent versions forever.
+# Expire them after a short grace window, and clean up incomplete multipart uploads.
+resource "aws_s3_bucket_lifecycle_configuration" "photos" {
+  bucket = aws_s3_bucket.photos.id
+
+  rule {
+    id     = "expire-noncurrent"
+    status = "Enabled"
+    filter {}
+    noncurrent_version_expiration {
+      noncurrent_days = var.noncurrent_version_expiration_days
+    }
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+}
+
 # Presigned GETs work fine over the bucket's own TLS endpoint; still, deny any
 # non-TLS access outright so nothing can ever read a photo in the clear.
 data "aws_iam_policy_document" "photos" {

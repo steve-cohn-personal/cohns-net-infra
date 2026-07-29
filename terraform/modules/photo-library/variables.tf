@@ -36,6 +36,12 @@ variable "lambda_log_retention_days" {
   default     = 30
 }
 
+variable "noncurrent_version_expiration_days" {
+  description = "Days to keep noncurrent object versions before expiring them (the populate script syncs with --delete)."
+  type        = number
+  default     = 7
+}
+
 variable "tags" {
   description = "Tags applied to every resource."
   type        = map(string)
