@@ -217,3 +217,33 @@ footer {
   padding-left: 0.75rem;
   margin: 0 0 1.5rem;
 }
+
+/* --- sign-in bar --- */
+
+.authbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 1.75rem;   /* reserve space so the masthead doesn't jump on render */
+  margin-bottom: 1.5rem;
+  font-size: 0.85rem;
+}
+
+.authbar-who {
+  color: var(--muted);
+}
+
+.authbar-btn {
+  font: inherit;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.3rem 0.8rem;
+  cursor: pointer;
+}
+
+.authbar-btn:hover {
+  border-color: var(--accent);
+}

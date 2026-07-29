@@ -85,6 +85,13 @@ resource "aws_cognito_user_pool_client" "web" {
   prevent_user_existence_errors = "ENABLED"
 }
 
+# Hosted sign-in UI. A prefix domain (cohns-net-auth.auth.<region>.amazoncognito.com);
+# a custom auth.cohns.net is the later polish.
+resource "aws_cognito_user_pool_domain" "hosted_ui" {
+  domain       = "cohns-net-auth"
+  user_pool_id = aws_cognito_user_pool.app.id
+}
+
 resource "aws_cognito_user_group" "moderators" {
   name         = "moderators"
   user_pool_id = aws_cognito_user_pool.app.id
@@ -117,4 +124,9 @@ output "cognito_issuer" {
 output "cognito_jwks_url" {
   description = "JWKS endpoint. Set COMMENTS_JWKS_URL to this to verify Cognito tokens (RS256)."
   value       = "https://cognito-idp.${var.region}.amazonaws.com/${aws_cognito_user_pool.app.id}/.well-known/jwks.json"
+}
+
+output "cognito_hosted_ui_domain" {
+  description = "Hosted sign-in UI base URL. The site's auth.js redirects here (OAuth code + PKCE)."
+  value       = "https://${aws_cognito_user_pool_domain.hosted_ui.domain}.auth.${var.region}.amazoncognito.com"
 }
