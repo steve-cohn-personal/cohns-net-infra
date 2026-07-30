@@ -17,3 +17,8 @@ output "list_lambda_name" {
   description = "The list Lambda function name."
   value       = module.library.list_lambda_name
 }
+
+output "account_role_arn" {
+  description = "Role to assume into the library's account — used by the populate script to upload photos."
+  value       = var.account_role_arn
+}

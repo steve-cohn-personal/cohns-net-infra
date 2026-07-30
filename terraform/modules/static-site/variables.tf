@@ -38,9 +38,9 @@ variable "versioning_enabled" {
 }
 
 variable "content_security_policy" {
-  description = "CSP header value. Deliberately strict by default; loosen it consciously."
+  description = "CSP header value. Null (the default) applies the module's strict built-in CSP; set a string to loosen it consciously."
   type        = string
-  default     = "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'"
+  default     = null
 }
 
 variable "tags" {

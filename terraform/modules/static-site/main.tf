@@ -11,6 +11,14 @@ locals {
   all_domains = concat([var.domain_name], var.alternate_domain_names)
 
   bucket_name = coalesce(var.bucket_name, "${replace(var.domain_name, ".", "-")}-origin")
+
+  # Callers pass null to accept this strict default rather than restating it. The CSP
+  # header block requires a non-null value, so coalesce here — never hand the resource
+  # a null (that's what broke `terraform plan` for envs that don't set a CSP).
+  content_security_policy = coalesce(
+    var.content_security_policy,
+    "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'"
+  )
 }
 
 # --- Origin bucket ---------------------------------------------------------
@@ -190,7 +198,7 @@ resource "aws_cloudfront_response_headers_policy" "this" {
     }
 
     content_security_policy {
-      content_security_policy = var.content_security_policy
+      content_security_policy = local.content_security_policy
       override                = true
     }
   }

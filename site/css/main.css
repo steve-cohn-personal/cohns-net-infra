@@ -39,6 +39,13 @@ body {
   padding: 0 1.5rem;
 }
 
+/* The photo library is grid-first, not prose: let its masthead, grid, and footer
+   span a much wider container than the site's reading width so the thumbnails fill
+   the window and reflow with it, instead of sitting in a narrow centered column. */
+.page--gallery .wrap {
+  max-width: 100rem;
+}
+
 /* --- masthead --- */
 
 .masthead {
@@ -250,9 +257,15 @@ footer {
 
 /* --- family photo gallery --- */
 
+/* <main> is the site's 2-column content grid (see the `main` rule above); the
+   gallery must span both columns, or the photo grid is boxed into one half. */
+.gallery {
+  grid-column: 1 / -1;
+}
+
 .photo-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 0.75rem;
   margin-top: 1rem;
 }

@@ -46,6 +46,26 @@ resource "aws_s3_bucket_versioning" "photos" {
   versioning_configuration { status = "Enabled" }
 }
 
+# Versioning keeps a curated re-populate safe (an accidental overwrite is
+# recoverable), but the populate script syncs with --delete, so every re-run would
+# otherwise leave the replaced objects lingering as noncurrent versions forever.
+# Expire them after a short grace window, and clean up incomplete multipart uploads.
+resource "aws_s3_bucket_lifecycle_configuration" "photos" {
+  bucket = aws_s3_bucket.photos.id
+
+  rule {
+    id     = "expire-noncurrent"
+    status = "Enabled"
+    filter {}
+    noncurrent_version_expiration {
+      noncurrent_days = var.noncurrent_version_expiration_days
+    }
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+}
+
 # Presigned GETs work fine over the bucket's own TLS endpoint; still, deny any
 # non-TLS access outright so nothing can ever read a photo in the clear.
 data "aws_iam_policy_document" "photos" {
@@ -134,12 +154,19 @@ resource "aws_lambda_function" "list" {
   source_code_hash = data.archive_file.lambda.output_base64sha256
   timeout          = 15
 
+  # The list endpoint mints a presigned URL for every photo's thumb AND full image
+  # on each request — pure SigV4 crypto, so it's CPU-bound. Lambda CPU scales with
+  # memory, and at the 128 MB default a full library (~1.4k photos = ~2.9k signings)
+  # blew past the 15 s timeout. ~1.8 GB gives a full vCPU, dropping it to a few
+  # seconds. The function only runs on page loads, so the cost is negligible.
+  memory_size = var.list_lambda_memory_mb
+
   environment {
     variables = {
-      PHOTO_BUCKET     = aws_s3_bucket.photos.id
-      FAMILY_GROUP     = var.family_group
-      URL_TTL_SECONDS  = tostring(var.url_ttl_seconds)
-      CORS_ORIGINS     = join(",", var.cors_origins)
+      PHOTO_BUCKET    = aws_s3_bucket.photos.id
+      FAMILY_GROUP    = var.family_group
+      URL_TTL_SECONDS = tostring(var.url_ttl_seconds)
+      CORS_ORIGINS    = join(",", var.cors_origins)
     }
   }
 

@@ -36,6 +36,18 @@ variable "lambda_log_retention_days" {
   default     = 30
 }
 
+variable "noncurrent_version_expiration_days" {
+  description = "Days to keep noncurrent object versions before expiring them (the populate script syncs with --delete)."
+  type        = number
+  default     = 7
+}
+
+variable "list_lambda_memory_mb" {
+  description = "Memory (and thus CPU) for the list Lambda. Presigning scales with photo count; ~1.8 GB = a full vCPU."
+  type        = number
+  default     = 1769
+}
+
 variable "tags" {
   description = "Tags applied to every resource."
   type        = map(string)
