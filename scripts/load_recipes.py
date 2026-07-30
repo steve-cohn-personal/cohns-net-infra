@@ -58,6 +58,22 @@ def emit_sample(recipes, out_path):
     print(f"wrote {len(public)} published recipe(s) → {out_path}")
 
 
+def _check_token(token):
+    """Fail early and clearly on a missing / placeholder / malformed token, rather
+    than deep in urllib. A Cognito ID token is a long ASCII JWT (three dot-separated
+    parts)."""
+    if not token:
+        sys.exit("no moderator token: pass --token or set COHNS_MODERATOR_TOKEN.")
+    token = token.strip()
+    if not token.isascii():
+        sys.exit("token contains non-ASCII characters — did you paste the '…' placeholder "
+                 "instead of a real moderator id_token?")
+    if token.count(".") != 2:
+        sys.exit("token doesn't look like a JWT (expected three dot-separated parts). "
+                 "Use a moderator Cognito id_token.")
+    return token
+
+
 def _request(method, url, token, body=None):
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(url, data=data, method=method)
@@ -69,6 +85,10 @@ def _request(method, url, token, body=None):
             return resp.status, resp.read()
     except urllib.error.HTTPError as e:
         return e.code, e.read()
+    except urllib.error.URLError as e:
+        sys.exit(f"could not reach {url}: {e.reason}\n"
+                 f"Is the content API deployed and its DNS resolving? "
+                 f"(api.dev.cohns.net was not provisioned as of this writing.)")
 
 
 def load_to_api(recipes, base, token, dry_run):
@@ -77,8 +97,7 @@ def load_to_api(recipes, base, token, dry_run):
             print(f"  [dry-run] would upsert {r['slug']} ({'published' if r.get('published') else 'draft'})")
         print(f"\nDry run — {len(recipes)} recipe(s), no API calls. Target: {base}")
         return
-    if not token:
-        sys.exit("no moderator token: pass --token or set COHNS_MODERATOR_TOKEN.")
+    token = _check_token(token)
 
     created = updated = failed = 0
     for r in recipes:
