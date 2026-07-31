@@ -41,6 +41,27 @@ resource "aws_route53_record" "delegation" {
 locals {
   # prod's records live in the apex; dev/stage's live in the freshly-made subzone.
   site_zone_id = local.is_prod ? var.apex_zone_id : aws_route53_zone.subzone[0].zone_id
+
+  # The content API this environment's site talks to (prod = apex host).
+  api_origin = local.is_prod ? "https://api.cohns.net" : "https://api.${var.environment}.cohns.net"
+
+  # The site's Content-Security-Policy is derived here, in committed code, rather
+  # than carried in the gitignored tfvars — it's a public response header, not a
+  # secret, and keeping it in tfvars let local and CI drift (CI, lacking the value,
+  # reverted the deployed policy to the module's strict default). Only api_origin
+  # varies by environment; the media CDN, Cognito hosted-UI, and family library
+  # (its API + private-photo presigned URLs from the regional S3 endpoint) are shared.
+  content_security_policy = join("; ", [
+    "default-src 'self'",
+    "img-src 'self' data: https://media.cohns.net https://cohns-family-810100780414.s3.us-west-2.amazonaws.com",
+    "style-src 'self'",
+    "script-src 'self'",
+    "connect-src 'self' ${local.api_origin} https://media.cohns.net https://cohns-net-auth.auth.us-west-2.amazoncognito.com https://soweh7qos7.execute-api.us-west-2.amazonaws.com",
+    "media-src 'self' blob: https://media.cohns.net",
+    "object-src 'none'",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+  ])
 }
 
 module "site" {
@@ -56,7 +77,7 @@ module "site" {
   alternate_domain_names  = var.alternate_domain_names
   hosted_zone_id          = local.site_zone_id
   price_class             = var.price_class
-  content_security_policy = var.content_security_policy
+  content_security_policy = coalesce(var.content_security_policy, local.content_security_policy)
 
   tags = local.tags
 }

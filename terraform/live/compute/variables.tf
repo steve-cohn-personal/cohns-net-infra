@@ -66,9 +66,9 @@ variable "db_nullpool" {
 }
 
 variable "cors_origins" {
-  description = "Allowed CORS origins for the API."
+  description = "Optional override for allowed CORS origins. Null (the default) uses the per-environment value derived in versions.tf (local.cors_origins)."
   type        = list(string)
-  default     = ["https://www.cohns.net", "https://steve.cohns.net"]
+  default     = null
 }
 
 variable "github_org" {

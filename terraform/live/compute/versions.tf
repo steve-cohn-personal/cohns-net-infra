@@ -19,6 +19,11 @@ locals {
     Repo        = "${var.github_org}/${var.github_repo}"
     Component   = "compute"
   }
+
+  # The site origin(s) allowed to call this API, derived per environment in committed
+  # code (not carried in the gitignored tfvars) so it can't drift. Overridable via
+  # the cors_origins var for a one-off.
+  cors_origins = var.environment == "prod" ? ["https://cohns.net", "https://www.cohns.net"] : ["https://${var.environment}.cohns.net"]
 }
 
 # The workload account. Null = run in-account (CI/OIDC).
