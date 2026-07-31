@@ -97,7 +97,7 @@ module "service" {
     COMMENTS_JWKS_URL     = data.terraform_remote_state.shared.outputs.cognito_jwks_url
     COMMENTS_JWT_ISSUER   = data.terraform_remote_state.shared.outputs.cognito_issuer
     COMMENTS_JWT_AUDIENCE = data.terraform_remote_state.shared.outputs.cognito_client_id
-    COMMENTS_CORS_ORIGINS = jsonencode(var.cors_origins)
+    COMMENTS_CORS_ORIGINS = jsonencode(coalesce(var.cors_origins, local.cors_origins))
   }
 
   task_policy_arns = [data.terraform_remote_state.data.outputs.db_read_secret_policy_arn]

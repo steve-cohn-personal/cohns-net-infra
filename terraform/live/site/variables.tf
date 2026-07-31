@@ -49,7 +49,7 @@ variable "price_class" {
 }
 
 variable "content_security_policy" {
-  description = "CSP override. Null keeps the module's strict default; set it to also allow the recipes API + media CDN (connect/media/img) for the cooking pages."
+  description = "Optional CSP override. Null (the default) uses the per-environment policy derived in main.tf (local.content_security_policy) — the normal path. Set a string only to override it for a one-off."
   type        = string
   default     = null
 }
