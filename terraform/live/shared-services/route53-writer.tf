@@ -24,6 +24,11 @@ locals {
   route53_writer_allowed_names = concat(
     local.prod_record_names,
     [for n in local.prod_record_names : "*.${n}"],
+    # The apex itself (its A/AAAA alias records) and its ACM validation record
+    # (_<hash>.cohns.net). The "_" prefix on the validation wildcard is deliberate:
+    # a bare "*.cohns.net" would hand prod the entire first level of the zone
+    # (api./dev./stage. delegations), which this role must never touch.
+    [var.domain_name, "_*.${var.domain_name}"],
   )
 }
 
