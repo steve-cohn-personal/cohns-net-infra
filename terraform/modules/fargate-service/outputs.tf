@@ -27,3 +27,8 @@ output "task_role_arn" {
   description = "The task role ARN (the app's identity)."
   value       = aws_iam_role.task.arn
 }
+
+output "task_role_name" {
+  description = "The task role name — attach extra policies to the app's identity."
+  value       = aws_iam_role.task.name
+}
