@@ -98,11 +98,58 @@ module "service" {
     COMMENTS_JWT_ISSUER   = data.terraform_remote_state.shared.outputs.cognito_issuer
     COMMENTS_JWT_AUDIENCE = data.terraform_remote_state.shared.outputs.cognito_client_id
     COMMENTS_CORS_ORIGINS = jsonencode(coalesce(var.cors_origins, local.cors_origins))
+    # User administration: the pool + the cross-account role the task assumes to
+    # grant/revoke group membership, and the topic it publishes access requests to.
+    COMMENTS_COGNITO_POOL_ID          = data.terraform_remote_state.shared.outputs.cognito_user_pool_id
+    COMMENTS_COGNITO_ADMIN_ROLE_ARN   = data.terraform_remote_state.shared.outputs.cognito_user_admin_role_arn
+    COMMENTS_ACCESS_REQUEST_TOPIC_ARN = aws_sns_topic.access_requests.arn
   }
 
-  task_policy_arns = [data.terraform_remote_state.data.outputs.db_read_secret_policy_arn]
+  task_policy_arns = [
+    data.terraform_remote_state.data.outputs.db_read_secret_policy_arn,
+    aws_iam_policy.task_admin.arn,
+  ]
 
   tags = local.tags
+}
+
+# --- Access requests + user admin -------------------------------------------
+
+# Emails the moderators when someone asks for access. Email subscriptions require
+# a one-time confirmation click per address.
+resource "aws_sns_topic" "access_requests" {
+  name = "comments-${var.environment}-access-requests"
+  tags = local.tags
+}
+
+resource "aws_sns_topic_subscription" "access_requests_email" {
+  for_each  = toset(var.access_request_emails)
+  topic_arn = aws_sns_topic.access_requests.arn
+  protocol  = "email"
+  endpoint  = each.value
+}
+
+# The task may assume the scoped Cognito-admin role (in shared-services) and publish
+# to its own access-request topic. Nothing broader.
+data "aws_iam_policy_document" "task_admin" {
+  statement {
+    sid       = "AssumeCognitoAdmin"
+    effect    = "Allow"
+    actions   = ["sts:AssumeRole"]
+    resources = [data.terraform_remote_state.shared.outputs.cognito_user_admin_role_arn]
+  }
+  statement {
+    sid       = "PublishAccessRequests"
+    effect    = "Allow"
+    actions   = ["sns:Publish"]
+    resources = [aws_sns_topic.access_requests.arn]
+  }
+}
+
+resource "aws_iam_policy" "task_admin" {
+  name   = "comments-${var.environment}-user-admin"
+  policy = data.aws_iam_policy_document.task_admin.json
+  tags   = local.tags
 }
 
 resource "aws_route53_record" "api" {

@@ -15,6 +15,7 @@ class Principal:
     sub: str
     name: str
     groups: frozenset[str]
+    email: str | None = None
 
     def is_moderator(self, group: str) -> bool:
         return group in self.groups
@@ -75,7 +76,7 @@ def current_user(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"invalid token: {exc}") from exc
 
     name = claims.get("name") or claims.get("cognito:username") or claims.get("email") or claims["sub"]
-    return Principal(sub=claims["sub"], name=str(name), groups=_groups(claims))
+    return Principal(sub=claims["sub"], name=str(name), groups=_groups(claims), email=claims.get("email"))
 
 
 def require_moderator(

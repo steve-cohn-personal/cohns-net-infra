@@ -73,3 +73,23 @@ class RecipeAdmin(RecipePublic):
     published: bool
     created_at: datetime
     updated_at: datetime
+
+
+# --- User administration ----------------------------------------------------
+
+
+class UserAdmin(BaseModel):
+    """A pool user as the admin page sees them."""
+
+    username: str
+    email: str | None
+    name: str | None
+    status: str | None
+    enabled: bool
+    groups: list[str]
+
+
+class AccessRequest(BaseModel):
+    """A signed-in user asking to be let into a gated area."""
+
+    group: str = Field(default="family", min_length=1, max_length=64)
