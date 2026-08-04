@@ -105,10 +105,10 @@ module "service" {
     COMMENTS_ACCESS_REQUEST_TOPIC_ARN = aws_sns_topic.access_requests.arn
   }
 
-  task_policy_arns = [
-    data.terraform_remote_state.data.outputs.db_read_secret_policy_arn,
-    aws_iam_policy.task_admin.arn,
-  ]
+  # Only ARNs known at plan time may go here — the module keys an attachment
+  # for_each off this set. The task_admin policy (created below) is attached
+  # separately so its apply-time ARN doesn't poison the for_each.
+  task_policy_arns = [data.terraform_remote_state.data.outputs.db_read_secret_policy_arn]
 
   tags = local.tags
 }
@@ -150,6 +150,13 @@ resource "aws_iam_policy" "task_admin" {
   name   = "comments-${var.environment}-user-admin"
   policy = data.aws_iam_policy_document.task_admin.json
   tags   = local.tags
+}
+
+# Attached directly (not via the module's task_policy_arns for_each) so this
+# apply-time ARN doesn't make the module's for_each unresolvable.
+resource "aws_iam_role_policy_attachment" "task_admin" {
+  role       = module.service.task_role_name
+  policy_arn = aws_iam_policy.task_admin.arn
 }
 
 resource "aws_route53_record" "api" {
