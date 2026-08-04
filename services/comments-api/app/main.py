@@ -10,7 +10,7 @@ from app.config import get_settings
 from app.db import engine
 from app.models import Base
 from app.ratelimit import limiter
-from app.routers import comments, moderation, recipes
+from app.routers import admin_users, comments, moderation, recipes
 
 settings = get_settings()
 
@@ -47,13 +47,15 @@ app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
-    allow_methods=["GET", "POST", "PUT"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
 )
 
 app.include_router(comments.router)
 app.include_router(moderation.router)
 app.include_router(recipes.router)
+app.include_router(admin_users.router)
+app.include_router(admin_users.requests_router)
 
 
 @app.get("/healthz", tags=["health"])

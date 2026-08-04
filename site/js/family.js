@@ -66,6 +66,46 @@
     root.appendChild(grid);
   }
 
+  // The content API (comments-api) that handles access requests — same host
+  // derivation the recipes page uses. Distinct from PHOTOS_API above.
+  function apiBase() {
+    var h = location.hostname;
+    if (h === "localhost" || h.endsWith(".local")) return "http://localhost:8000";
+    if (h === "cohns.net" || h.startsWith("www.") || h.startsWith("steve.")) return "https://api.cohns.net";
+    return "https://api." + h;
+  }
+
+  // Signed in but not yet in the family group: offer a real request, not a dead end.
+  function renderRequestAccess(root) {
+    root.innerHTML = "";
+    var box = el("div", { class: "placeholder" });
+    box.appendChild(el("p", {}, [
+      "This is a private family library. Request access and you'll get an email once you're approved — then sign out and back in to view it.",
+    ]));
+    var btn = el("button", { class: "authbar-btn" }, ["Request access"]);
+    btn.addEventListener("click", async function () {
+      btn.disabled = true;
+      btn.textContent = "Requesting…";
+      try {
+        var r = await window.cohnsAuth.authFetch(apiBase() + "/access-requests", {
+          method: "POST",
+          mode: "cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ group: "family" }),
+        });
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        message(root, "Thanks — your request is in. You'll get an email once you're approved; then sign out and back in to see the library.");
+      } catch (e) {
+        console.error(e);
+        btn.disabled = false;
+        btn.textContent = "Request access";
+        box.appendChild(el("p", {}, ["Couldn't send the request just now. Please try again."]));
+      }
+    });
+    box.appendChild(btn);
+    root.appendChild(box);
+  }
+
   async function load() {
     var root = document.getElementById("gallery");
 
@@ -77,7 +117,7 @@
     try {
       var res = await window.cohnsAuth.authFetch(PHOTOS_API, { mode: "cors" });
       if (res.status === 403) {
-        message(root, "This library is invite-only. Ask Steve to add you to the family group.");
+        renderRequestAccess(root);
         return;
       }
       if (res.status === 401) {

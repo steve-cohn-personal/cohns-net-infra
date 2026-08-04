@@ -46,6 +46,17 @@ class Settings(BaseSettings):
     # A token carrying this value in its "groups" (or "scope") claim may moderate.
     moderator_group: str = "moderators"
 
+    # User administration (grant/revoke group membership) and access-request emails.
+    # The Cognito pool lives in another account, so the task assumes this role to
+    # call the admin APIs; both are None locally/in tests (the endpoints then 503).
+    # Only these groups may be granted/revoked through the admin API.
+    cognito_pool_id: str | None = None
+    cognito_admin_role_arn: str | None = None
+    grantable_groups: list[str] = ["family", "moderators"]
+    # SNS topic that emails on a new access request. None = requests are accepted
+    # but no notification is sent.
+    access_request_topic_arn: str | None = None
+
     # Rate limit for posting, in slowapi syntax. Applied per client IP.
     rate_limit_post: str = "5/minute"
 

@@ -65,6 +65,12 @@ variable "db_nullpool" {
   default     = false
 }
 
+variable "access_request_emails" {
+  description = "Addresses notified (via SNS email) when someone requests access. Each confirms once."
+  type        = list(string)
+  default     = ["steve@cohns.net"]
+}
+
 variable "cors_origins" {
   description = "Optional override for allowed CORS origins. Null (the default) uses the per-environment value derived in versions.tf (local.cors_origins)."
   type        = list(string)
