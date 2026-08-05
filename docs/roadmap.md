@@ -90,4 +90,6 @@ gated so nothing renders as a false outage):
 **Still open:**
 - [ ] SLO burn-rate alerting, once traffic makes the math meaningful
 - [ ] Backup and restore drill — a backup nobody has restored is a hypothesis, not a backup
-- [ ] tflint, tfsec/checkov, and Dependabot in CI
+- [x] tflint, checkov, and Dependabot in CI — both scanners **gate** (checkov's
+      initial 93-finding backlog triaged: genuine issues fixed, the rest documented in
+      `.checkov.yaml` / inline `checkov:skip`); Dependabot batches weekly updates
