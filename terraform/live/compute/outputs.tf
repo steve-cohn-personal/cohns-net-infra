@@ -8,6 +8,16 @@ output "alb_dns_name" {
   value       = module.service.alb_dns_name
 }
 
+output "alb_arn_suffix" {
+  description = "ALB ARN suffix — the LoadBalancer dimension for CloudWatch alarms/dashboards."
+  value       = module.service.alb_arn_suffix
+}
+
+output "target_group_arn_suffix" {
+  description = "Target group ARN suffix — the TargetGroup dimension for host-health metrics."
+  value       = module.service.target_group_arn_suffix
+}
+
 output "cluster_name" {
   description = "ECS cluster name."
   value       = module.service.cluster_name

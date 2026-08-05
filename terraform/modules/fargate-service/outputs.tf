@@ -13,6 +13,16 @@ output "alb_arn" {
   value       = aws_lb.this.arn
 }
 
+output "alb_arn_suffix" {
+  description = "The ALB ARN suffix (app/name/id) — the LoadBalancer dimension on AWS/ApplicationELB CloudWatch metrics."
+  value       = aws_lb.this.arn_suffix
+}
+
+output "target_group_arn_suffix" {
+  description = "The target group ARN suffix — the TargetGroup dimension for healthy/unhealthy host CloudWatch metrics."
+  value       = aws_lb_target_group.this.arn_suffix
+}
+
 output "cluster_name" {
   description = "The ECS cluster name."
   value       = aws_ecs_cluster.this.name
