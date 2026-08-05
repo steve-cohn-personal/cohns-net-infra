@@ -443,3 +443,73 @@ footer {
   margin: 0;
 }
 .authbar-btn.is-on { border-color: var(--accent); color: var(--accent); }
+
+/* --- Résumé ------------------------------------------------------------- */
+
+.resume-controls { margin-bottom: 1.5rem; }
+
+.btn {
+  font: inherit;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.45rem 1rem;
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--accent); }
+
+.resume {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: clamp(1.5rem, 4vw, 2.75rem);
+}
+
+.resume-head { border-bottom: 1px solid var(--border); padding-bottom: 1.25rem; margin-bottom: 1.5rem; }
+.resume-name { font-size: clamp(1.6rem, 5vw, 2.2rem); font-weight: 700; line-height: 1.15; margin: 0; }
+.resume-label { color: var(--muted); margin: 0.35rem 0 0.75rem; }
+.resume-contact { display: flex; flex-wrap: wrap; gap: 0.35rem 1.1rem; margin: 0; }
+.resume-contact a { color: var(--accent); text-decoration: none; }
+.resume-contact a:hover { text-decoration: underline; }
+
+.resume-summary { color: var(--text); line-height: 1.6; margin: 0 0 2rem; max-width: 60ch; }
+
+.resume-section { margin-bottom: 2rem; }
+.resume-section:last-child { margin-bottom: 0; }
+.resume-section > h2 {
+  font-size: 0.8rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.4rem;
+  margin: 0 0 1rem;
+}
+
+.resume-project { margin-bottom: 1.25rem; }
+.resume-project h3 { font-size: 1.05rem; margin: 0 0 0.35rem; }
+.resume-project h3 a { color: inherit; text-decoration: none; border-bottom: 1px solid var(--accent); }
+.resume-project-summary { margin: 0 0 0.6rem; color: var(--muted); line-height: 1.5; }
+
+.resume-highlights { margin: 0; padding-left: 1.1rem; }
+.resume-highlights li { color: var(--text); line-height: 1.5; margin-bottom: 0.35rem; }
+
+.resume-role { margin-bottom: 1.25rem; }
+.resume-role-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.25rem 1rem; align-items: baseline; }
+.resume-role-head h3 { font-size: 1.05rem; margin: 0; }
+.resume-dates { color: var(--muted); font-size: 0.9rem; white-space: nowrap; }
+
+/* Print / Save-as-PDF: drop the site chrome, flatten the card, force light ink on
+   white so it doesn't burn a page of toner in dark mode. The résumé body is the page. */
+@media print {
+  :root { --bg: #fff; --surface: #fff; --text: #111; --muted: #444; --accent: #111; --border: #bbb; }
+  body { background: #fff; color: #111; }
+  .masthead, .authbar, .resume-controls, footer { display: none !important; }
+  main.wrap { padding: 0; max-width: none; }
+  .resume { border: 0; border-radius: 0; padding: 0; }
+  .resume-project h3 a, .resume-contact a { color: #111; }
+  a { color: #111; }
+  .resume-section { break-inside: avoid; }
+  .resume-project, .resume-role { break-inside: avoid; }
+}

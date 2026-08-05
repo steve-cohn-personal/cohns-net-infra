@@ -71,7 +71,11 @@ real lesson videos), not engineering.
       copyright line by taking only facts (ingredients, steps), regenerating the summary from
       yield/times with attribution, and never lifting the headnote or images (drafts default to
       unpublished). Stdlib-only, 22 unit tests (`scripts/test_import_recipe.py`).
-- [ ] **Resume** rendered from structured data rather than a checked-in PDF — not started.
+- [x] **Résumé** rendered from structured data rather than a checked-in PDF. `site/resume.json`
+      drives both the page (`site/js/resume.js`) and its schema.org/Person JSON-LD; `/resume` prints
+      to a clean PDF on demand (print stylesheet). Seeded with the verifiable parts (skills, the
+      cohns.net project); `work[]` / `education[]` are ready to fill and the page omits them while
+      empty — nothing fabricated.
 
 ## Phase 4 — Operations ✅ live in prod (2026-08-05)
 

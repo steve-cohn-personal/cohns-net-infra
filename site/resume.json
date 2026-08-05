@@ -1,0 +1,39 @@
+{
+  "_note": "Single source for /resume — the page and its schema.org/Person JSON-LD both render from this. work[] and education[] are intentionally empty; the page renders them automatically and omits them while empty. Nothing here is invented — fill real roles/schools in yourself.",
+  "basics": {
+    "name": "Steven M. Cohn",
+    "label": "DevOps & Site Reliability Engineer",
+    "location": "Niwot, Colorado",
+    "email": "steve@cohns.net",
+    "url": "https://cohns.net",
+    "profiles": [
+      { "network": "LinkedIn", "url": "https://www.linkedin.com/in/steven-cohn-605b465/" },
+      { "network": "GitHub", "url": "https://github.com/steve-cohn-personal/cohns-net-infra" }
+    ],
+    "summary": "DevOps and Site Reliability Engineer who builds cost-efficient, credential-free AWS platforms — infrastructure as code end to end, observability that earns its keep, and cloud spend cut without cutting reliability. This résumé renders from a single structured-data file; the platform serving it is the portfolio."
+  },
+  "skills": [
+    { "category": "Cloud", "items": "AWS, Terraform, Terragrunt, CloudFormation" },
+    { "category": "Orchestration", "items": "Ansible, Puppet, Chef, Salt" },
+    { "category": "Containers", "items": "Docker, Kubernetes, Helm, EKS, ECS" },
+    { "category": "CI/CD", "items": "GitHub Actions, CircleCI, Jenkins" },
+    { "category": "Data", "items": "Postgres, MySQL, Oracle, Mongo" },
+    { "category": "Observability", "items": "Datadog, Splunk, Prometheus, Grafana" }
+  ],
+  "projects": [
+    {
+      "name": "cohns.net — a platform that is its own portfolio",
+      "url": "https://github.com/steve-cohn-personal/cohns-net-infra",
+      "summary": "A public Terraform/Ansible monorepo that builds and runs cohns.net end to end — an AWS Organization, a containerized API, content pipelines, and observability — with no long-lived credentials anywhere.",
+      "highlights": [
+        "AWS Organization with isolated dev/stage/prod accounts, SCP guardrails, and IAM Identity Center — zero access keys: humans authenticate with SSO, CI with GitHub OIDC.",
+        "Terraform module library on a dev → stage → prod promotion model; keyless CI runs fmt/validate/plan with environment-gated applies.",
+        "Containerized FastAPI service on ECS Fargate over Aurora Serverless v2 that scales to zero — $0 at idle.",
+        "Observability as code: Grafana Cloud synthetics + CloudWatch read through an assumed role (no vendor key), dashboards, alarms, and a per-account cost budget — all on the free tier.",
+        "Security-gated pipelines: tflint + checkov on every change with SARIF to the Security tab, plus Dependabot for the supply chain."
+      ]
+    }
+  ],
+  "work": [],
+  "education": []
+}
