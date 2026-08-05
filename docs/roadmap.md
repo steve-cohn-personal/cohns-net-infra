@@ -43,18 +43,32 @@ app, image, and database don't change.
 - [ ] EKS variant (Karpenter, AWS Load Balancer Controller, external-dns) — optional alternative;
       this is where Ansible would earn its keep (node bootstrap, config)
 
-## Phase 3 — Content
+## Phase 3 — Content (mostly built)
 
-Reordered: **cooking first**, then the (private) photo library.
+Reordered: **cooking first**, then the (private) photo library. Nearly all of it is built, deployed,
+and live; what genuinely remains is one tool and the resume. The rest is *content* (more recipes,
+real lesson videos), not engineering.
 
-1. **Cooking — recipes + video (next).** Recipe content model, video transcoded by MediaConvert,
-   served from CloudFront.
-2. **Cognito** — a real token issuer for the comments API (replaces the HS256 shared secret with
-   RS256/JWKS) and the auth foundation the photo library needs.
-3. **Family photos.** Cognito invite-only signup, private S3, signed CloudFront URLs, `noindex`.
-   No facial recognition anywhere near it. Not public, not indexed — see the blast-radius note in
-   [account-layout.md](account-layout.md); the same reasoning applies to personal data about minors.
-4. **Resume** rendered from structured data rather than a checked-in PDF.
+- [x] **Cognito** — end-user identity as RS256/JWKS, not a shared HS256 secret. `cognito.tf` +
+      `cognito-admin.tf` (cross-account admin) in shared-services; `live/compute` wires
+      `COMMENTS_JWKS_URL` into the comments API, so it verifies Cognito tokens by group claim. The
+      auth foundation the photo library needs.
+- [x] **Cooking — recipes live.** The comments API (`api.cohns.net`, Fargate + Aurora Serverless
+      scale-to-zero, prod) serves **7 recipes**; `site/js/recipes.js` renders them at `/recipes`
+      (the `Loading…` placeholder is just the pre-fetch state). Import for these 7 was a one-off
+      loader (`scripts/load_recipes.py`).
+- [x] **Cooking — video.** `live/media` applied: ingest/output S3, `cohns-media-submit` Lambda,
+      MediaConvert, `media.cohns.net` CloudFront. Proven end-to-end — a demo lesson transcoded to
+      HLS (480/720 + poster). The recipe schema carries `video_key` and the page has an HLS.js
+      player, so lessons drop in as content.
+- [x] **Family photos — deployed and populated.** `live/family` + the `photo-library` module,
+      applied in the prod content account: private S3 (**~2,870 photos**), a `cohns-family-list`
+      Lambda behind API Gateway, invite-only `/family` landing (live, `noindex`). No facial
+      recognition anywhere near it — see the blast-radius note in
+      [account-layout.md](account-layout.md); the same reasoning applies to personal data about minors.
+- [ ] **Recipe import tool** — parse recipes from other sites (JSON-LD), with the copyright nuance.
+      The one remaining build item.
+- [ ] **Resume** rendered from structured data rather than a checked-in PDF — not started.
 
 ## Phase 4 — Operations ✅ live in prod (2026-08-05)
 
