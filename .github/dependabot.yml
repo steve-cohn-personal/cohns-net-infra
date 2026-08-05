@@ -1,0 +1,35 @@
+version: 2
+
+# Keep the supply chain current: the GitHub Actions we pin, the comments API's
+# Python dependencies, and its container base image. Grouped weekly so updates
+# arrive as a small, reviewable batch rather than a stream of one-line PRs.
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: ci(deps)
+    groups:
+      actions:
+        patterns: ['*']
+
+  - package-ecosystem: pip
+    directory: /services/comments-api
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps(comments-api)
+    groups:
+      python:
+        patterns: ['*']
+
+  - package-ecosystem: docker
+    directory: /services/comments-api
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps(docker)

@@ -1,0 +1,69 @@
+name: security
+
+# Static analysis of the Terraform. No cloud access — this reads code, it never
+# touches AWS, so there is no OIDC role and no credentials here.
+#
+# tflint GATES (the tree is clean today, so a regression should fail the PR).
+# checkov runs in REPORT mode: it lands findings in the repo's Security tab as
+# SARIF but soft-fails, so a backlog of pre-existing, mostly by-design findings
+# (read-only wildcard IAM on the CloudWatch reader, etc.) is visible and triageable
+# without wedging every PR. Flip `--soft-fail` off once the backlog is triaged or
+# suppressed with inline `checkov:skip` comments.
+
+on:
+  pull_request:
+    paths:
+      - 'terraform/**'
+      - 'bootstrap/**'
+      - '.tflint.hcl'
+      - '.github/workflows/security.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'terraform/**'
+      - 'bootstrap/**'
+      - '.tflint.hcl'
+      - '.github/workflows/security.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tflint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v0.54.0
+      - name: init plugins
+        run: tflint --init
+        env:
+          # Authenticated plugin downloads avoid GitHub's anonymous rate limit.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: tflint
+        run: tflint --recursive --no-color
+
+  checkov:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # upload SARIF to the Security tab
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: install checkov
+        run: pip install checkov
+      - name: checkov (report mode)
+        run: >
+          checkov --directory terraform --framework terraform --soft-fail
+          --output cli --output sarif --output-file-path console,results.sarif
+      - name: upload sarif
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+          category: checkov
