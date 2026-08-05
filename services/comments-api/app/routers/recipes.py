@@ -1,12 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import recipe_import
 from app.auth import require_moderator
 from app.db import get_session
 from app.models import Recipe
-from app.schemas import CATEGORIES, RecipeAdmin, RecipePublic, RecipeWrite
+from app.recipe_import import RecipeImportError
+from app.schemas import CATEGORIES, RecipeAdmin, RecipeImportRequest, RecipePublic, RecipeWrite
 
 router = APIRouter(tags=["recipes"])
 
@@ -47,6 +50,17 @@ async def list_all_recipes(session: AsyncSession = Depends(get_session)):
     return list(result.scalars())
 
 
+@router.post("/admin/recipes/import", response_model=RecipeWrite, dependencies=[Depends(require_moderator)])
+async def import_recipe(payload: RecipeImportRequest):
+    """Fetch a URL's schema.org/Recipe JSON-LD and return an unsaved draft for the
+    admin to review, categorize, and save. Fetch runs in a threadpool so the blocking
+    HTTP call doesn't stall the event loop."""
+    try:
+        return await run_in_threadpool(recipe_import.import_from_url, payload.url)
+    except RecipeImportError as e:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e)) from None
+
+
 @router.post(
     "/recipes",
     response_model=RecipeAdmin,
@@ -80,6 +94,19 @@ async def update_recipe(slug: str, payload: RecipeWrite, session: AsyncSession =
         raise HTTPException(status.HTTP_409_CONFLICT, f"slug '{payload.slug}' already exists") from None
     await session.refresh(recipe)
     return recipe
+
+
+@router.delete(
+    "/recipes/{slug}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_moderator)],
+)
+async def delete_recipe(slug: str, session: AsyncSession = Depends(get_session)):
+    recipe = await _by_slug(session, slug)
+    if recipe is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "recipe not found")
+    await session.delete(recipe)
+    await session.commit()
 
 
 async def _by_slug(session: AsyncSession, slug: str) -> Recipe | None:
