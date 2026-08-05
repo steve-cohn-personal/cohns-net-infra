@@ -1,0 +1,168 @@
+{
+  "uid": "cohns-alb-red",
+  "title": "cohns.net — API RED (rate, errors, duration)",
+  "tags": ["cohns-net", "alb", "red"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "editable": true,
+  "refresh": "1m",
+  "time": { "from": "now-3h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "cw",
+        "label": "CloudWatch",
+        "type": "datasource",
+        "query": "cloudwatch",
+        "hide": 0,
+        "current": {}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Request rate",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "datasource": { "type": "cloudwatch", "uid": "${cw}" },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "fillOpacity": 10, "lineWidth": 2 } } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "cloudwatch", "uid": "${cw}" },
+          "namespace": "AWS/ApplicationELB",
+          "metricName": "RequestCount",
+          "statistic": "Sum",
+          "dimensions": { "LoadBalancer": "*" },
+          "matchExact": false,
+          "region": "default",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "label": "requests"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Errors (5xx)",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "datasource": { "type": "cloudwatch", "uid": "${cw}" },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "custom": { "fillOpacity": 10, "lineWidth": 2 } } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "cloudwatch", "uid": "${cw}" },
+          "namespace": "AWS/ApplicationELB",
+          "metricName": "HTTPCode_Target_5XX_Count",
+          "statistic": "Sum",
+          "dimensions": { "LoadBalancer": "*" },
+          "matchExact": false,
+          "region": "default",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "label": "target 5xx"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "cloudwatch", "uid": "${cw}" },
+          "namespace": "AWS/ApplicationELB",
+          "metricName": "HTTPCode_ELB_5XX_Count",
+          "statistic": "Sum",
+          "dimensions": { "LoadBalancer": "*" },
+          "matchExact": false,
+          "region": "default",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "label": "elb 5xx"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Duration (target response time)",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "datasource": { "type": "cloudwatch", "uid": "${cw}" },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "fillOpacity": 5, "lineWidth": 2 } } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "cloudwatch", "uid": "${cw}" },
+          "namespace": "AWS/ApplicationELB",
+          "metricName": "TargetResponseTime",
+          "statistic": "p50",
+          "dimensions": { "LoadBalancer": "*" },
+          "matchExact": false,
+          "region": "default",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "label": "p50"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "cloudwatch", "uid": "${cw}" },
+          "namespace": "AWS/ApplicationELB",
+          "metricName": "TargetResponseTime",
+          "statistic": "p95",
+          "dimensions": { "LoadBalancer": "*" },
+          "matchExact": false,
+          "region": "default",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "label": "p95"
+        },
+        {
+          "refId": "C",
+          "datasource": { "type": "cloudwatch", "uid": "${cw}" },
+          "namespace": "AWS/ApplicationELB",
+          "metricName": "TargetResponseTime",
+          "statistic": "p99",
+          "dimensions": { "LoadBalancer": "*" },
+          "matchExact": false,
+          "region": "default",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "label": "p99"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Healthy vs unhealthy targets",
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 8 },
+      "datasource": { "type": "cloudwatch", "uid": "${cw}" },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "custom": { "fillOpacity": 10, "lineWidth": 2 } } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "cloudwatch", "uid": "${cw}" },
+          "namespace": "AWS/ApplicationELB",
+          "metricName": "HealthyHostCount",
+          "statistic": "Minimum",
+          "dimensions": { "LoadBalancer": "*", "TargetGroup": "*" },
+          "matchExact": false,
+          "region": "default",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "label": "healthy"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "cloudwatch", "uid": "${cw}" },
+          "namespace": "AWS/ApplicationELB",
+          "metricName": "UnHealthyHostCount",
+          "statistic": "Maximum",
+          "dimensions": { "LoadBalancer": "*", "TargetGroup": "*" },
+          "matchExact": false,
+          "region": "default",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "label": "unhealthy"
+        }
+      ]
+    }
+  ]
+}
