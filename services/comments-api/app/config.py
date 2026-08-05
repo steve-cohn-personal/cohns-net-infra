@@ -76,6 +76,12 @@ class Settings(BaseSettings):
     # and Alembic migrations own the schema.
     auto_create_tables: bool = True
 
+    # Expose Prometheus RED metrics at /metrics. On by default; the metrics are
+    # request counts and latency histograms (no bodies, no credentials), so the
+    # endpoint is safe to leave reachable. Set COMMENTS_METRICS_ENABLED=false to
+    # turn it off entirely.
+    metrics_enabled: bool = True
+
     def build_database_url(self) -> str:
         """The effective async SQLAlchemy URL.
 

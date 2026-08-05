@@ -53,10 +53,25 @@ Reordered: **cooking first**, then the (private) photo library.
    [account-layout.md](account-layout.md); the same reasoning applies to personal data about minors.
 4. **Resume** rendered from structured data rather than a checked-in PDF.
 
-## Phase 4 — Operations
+## Phase 4 — Operations (in progress)
 
-- Prometheus + Grafana, or a managed equivalent
-- CloudWatch alarms → SNS → phone
-- Budget alerts per account (this is a personal project; a runaway bill is the realistic risk)
-- Backup and restore drill — a backup nobody has restored is a hypothesis, not a backup
-- tflint, tfsec/checkov, and Dependabot in CI
+Pulled ahead of the remaining Phase 3 content: observability is the part of this platform worth
+showing, so it became a content area of its own —
+**[steve.cohns.net/observability](https://steve.cohns.net/observability/)**. Design decisions and
+trade-offs are written up in [observability.md](observability.md).
+
+- [x] Grafana Cloud (the "managed equivalent"), free tier — dashboards, data sources, synthetic
+      checks, and alert wiring all as Terraform in `live/observability`. No click-ops.
+- [x] Global synthetic monitoring of www / steve / the dev API, with per-endpoint SLO panels
+- [x] CloudWatch read by a role Grafana Cloud **assumes** (external-id gated, read-only) —
+      no access key issued to a vendor, consistent with the OIDC/Identity Center model
+- [x] RED dashboards from ALB metrics — no agent, no extra compute; plus `/metrics` on the
+      comments API for handler-level detail
+- [x] Aurora scale-to-zero capacity + estimated hourly cost as a live panel
+- [x] CloudWatch alarms → SNS (5xx, p95 latency, unhealthy targets) — paging stays on AWS so it
+      doesn't depend on the dashboard vendor being up
+- [x] Budget alerts per account (this is a personal project; a runaway bill is the realistic risk)
+- [ ] Apply the stack (needs the Grafana Cloud account + tokens), then embed the public dashboard
+- [ ] SLO burn-rate alerting, once traffic makes the math meaningful
+- [ ] Backup and restore drill — a backup nobody has restored is a hypothesis, not a backup
+- [ ] tflint, tfsec/checkov, and Dependabot in CI

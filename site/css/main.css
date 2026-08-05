@@ -354,4 +354,46 @@ footer {
 }
 .admin-actions { white-space: nowrap; }
 .admin-actions .authbar-btn { margin: 0 0.4rem 0.3rem 0; }
+
+/* --- observability embed --- */
+
+/* A responsive frame for the Grafana public dashboard: hold a 16:9 box that
+   reflows with the column, so the embed never forces horizontal scroll on
+   mobile. The iframe fills it. */
+.o11y-embed { padding: 1rem; }
+
+/* The dashboard is the point of the page — let it span both grid columns. */
+@media (min-width: 48rem) {
+  .o11y-embed { grid-column: 1 / -1; }
+}
+
+.o11y-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 22rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.o11y-frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.o11y-embed .links { margin-top: 1rem; }
+
+/* Shown in place of the frame until the public dashboard URL is wired up. */
+.o11y-pending {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+}
 .authbar-btn.is-on { border-color: var(--accent); color: var(--accent); }

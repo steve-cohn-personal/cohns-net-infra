@@ -19,6 +19,7 @@ dependencies = [
     "pyjwt[crypto]>=2.9", # crypto extra = RS256/JWKS support for Cognito verification
     "slowapi>=0.1.9",
     "alembic>=1.13",
+    "prometheus-fastapi-instrumentator>=7.0", # RED metrics + /metrics endpoint
 ]
 
 [project.optional-dependencies]

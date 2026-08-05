@@ -4,7 +4,8 @@ The infrastructure behind [www.cohns.net](https://www.cohns.net), built with Ter
 Ansible on AWS. This repository is public by design: it *is* the portfolio piece.
 
 If you landed here from my resume — the interesting parts are
-[docs/access-strategy.md](docs/access-strategy.md) for the identity model and
+[docs/observability.md](docs/observability.md) for how the platform watches itself (and what it
+costs to do so), [docs/access-strategy.md](docs/access-strategy.md) for the identity model, and
 [docs/promotion.md](docs/promotion.md) for how code moves dev → stage → prod.
 
 ## What this builds
@@ -37,6 +38,8 @@ terraform/
     site/             The static site (dev / stage / prod).
     data/             VPC + Aurora (dev / stage / prod).
     compute/          ECS Fargate comments API (dev / stage / prod).
+    observability/    Grafana Cloud as code: synthetics, CloudWatch data source
+                      (role-assumed, keyless), dashboards, alarms, cost budget.
 services/
   comments-api/       FastAPI: auth-gated, moderated, rate-limited comments.
 ansible/              Config management. Reserved for a future EKS/node story.
@@ -80,5 +83,9 @@ make plan ENV=prod
   **https://api.dev.cohns.net** on ECS Fargate + Aurora Serverless v2, built and deployed by
   keyless CI. (Compute is Fargate rather than EKS — a deliberate cost choice.)
 - **Phase 3 — Content:** cooking (recipes + video) next, then the private photo library.
+- **Phase 4 — Operations:** in progress. The platform now watches itself — global synthetic
+  probes, RED dashboards from ALB metrics, Aurora scale-to-zero capacity and cost, CloudWatch
+  alarms → SNS, and a per-account budget — all Terraform, on Grafana Cloud's free tier for $0/mo.
+  See [docs/observability.md](docs/observability.md).
 
 See [docs/roadmap.md](docs/roadmap.md).

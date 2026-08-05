@@ -1,0 +1,117 @@
+{
+  "uid": "cohns-aurora-cost",
+  "title": "cohns.net — Aurora Serverless Cost (scale-to-zero)",
+  "tags": ["cohns-net", "cost", "aurora"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "editable": true,
+  "refresh": "1m",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "cw",
+        "label": "CloudWatch",
+        "type": "datasource",
+        "query": "cloudwatch",
+        "hide": 0,
+        "current": {}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Aurora capacity (ACU) — watch it fall to zero when idle",
+      "gridPos": { "h": 9, "w": 16, "x": 0, "y": 0 },
+      "datasource": { "type": "cloudwatch", "uid": "${cw}" },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "custom": { "fillOpacity": 20, "lineWidth": 2, "gradientMode": "opacity" } } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "cloudwatch", "uid": "${cw}" },
+          "namespace": "AWS/RDS",
+          "metricName": "ServerlessDatabaseCapacity",
+          "statistic": "Average",
+          "dimensions": { "DBClusterIdentifier": "*" },
+          "matchExact": false,
+          "region": "default",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "label": "ACU — {{DBClusterIdentifier}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Estimated DB compute cost / hour",
+      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 0 },
+      "datasource": { "type": "cloudwatch", "uid": "${cw}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 0.25 },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area" },
+      "targets": [
+        {
+          "refId": "A",
+          "hide": true,
+          "datasource": { "type": "cloudwatch", "uid": "${cw}" },
+          "namespace": "AWS/RDS",
+          "metricName": "ServerlessDatabaseCapacity",
+          "statistic": "Average",
+          "dimensions": { "DBClusterIdentifier": "*" },
+          "matchExact": false,
+          "region": "default",
+          "id": "m1",
+          "metricQueryType": 0,
+          "metricEditorMode": 0
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "cloudwatch", "uid": "${cw}" },
+          "expression": "m1 * 0.12",
+          "metricQueryType": 0,
+          "metricEditorMode": 1,
+          "region": "default",
+          "label": "$ / hour (ACU x $0.12)"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Database connections",
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 9 },
+      "datasource": { "type": "cloudwatch", "uid": "${cw}" },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "custom": { "fillOpacity": 5, "lineWidth": 2 } } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "cloudwatch", "uid": "${cw}" },
+          "namespace": "AWS/RDS",
+          "metricName": "DatabaseConnections",
+          "statistic": "Maximum",
+          "dimensions": { "DBClusterIdentifier": "*" },
+          "matchExact": false,
+          "region": "default",
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "label": "connections — {{DBClusterIdentifier}}"
+        }
+      ]
+    }
+  ]
+}
