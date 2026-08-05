@@ -66,8 +66,11 @@ real lesson videos), not engineering.
       Lambda behind API Gateway, invite-only `/family` landing (live, `noindex`). No facial
       recognition anywhere near it — see the blast-radius note in
       [account-layout.md](account-layout.md); the same reasoning applies to personal data about minors.
-- [ ] **Recipe import tool** — parse recipes from other sites (JSON-LD), with the copyright nuance.
-      The one remaining build item.
+- [x] **Recipe import tool** — `scripts/import_recipe.py`: reads a page's schema.org/Recipe
+      JSON-LD and emits the RecipeWrite shape for `load_recipes.py`. Honors robots.txt; keeps the
+      copyright line by taking only facts (ingredients, steps), regenerating the summary from
+      yield/times with attribution, and never lifting the headnote or images (drafts default to
+      unpublished). Stdlib-only, 22 unit tests (`scripts/test_import_recipe.py`).
 - [ ] **Resume** rendered from structured data rather than a checked-in PDF — not started.
 
 ## Phase 4 — Operations ✅ live in prod (2026-08-05)
