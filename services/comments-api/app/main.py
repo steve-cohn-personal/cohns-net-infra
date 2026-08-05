@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy import text
@@ -56,6 +57,18 @@ app.include_router(moderation.router)
 app.include_router(recipes.router)
 app.include_router(admin_users.router)
 app.include_router(admin_users.requests_router)
+
+
+# Prometheus RED metrics at /metrics: request rate, errors, and a latency
+# histogram, labelled by method / handler / status. Grafana Cloud scrapes this
+# via an Alloy sidecar when app-level metrics are wanted; the live dashboards
+# also derive rate/errors/duration from ALB CloudWatch metrics, so this endpoint
+# is additive, not load-bearing. Health and metrics paths are excluded so they
+# don't inflate the latency histogram.
+if settings.metrics_enabled:
+    Instrumentator(excluded_handlers=["/metrics", "/healthz", "/readyz"]).instrument(
+        app
+    ).expose(app, endpoint="/metrics", include_in_schema=False)
 
 
 @app.get("/healthz", tags=["health"])
