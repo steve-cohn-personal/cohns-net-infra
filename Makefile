@@ -61,8 +61,14 @@ deploy-site: check-env ## Sync site/ to ENV's bucket and invalidate the CDN
 	@set -e; \
 	bucket=$$(cd $(LIVE_DIR) && terraform output -raw bucket_name); \
 	dist=$$(cd $(LIVE_DIR) && terraform output -raw distribution_id); \
-	echo "==> syncing to $$bucket"; \
-	aws s3 sync site/ "s3://$$bucket/" --delete --profile cohns-$(ENV); \
+	echo "==> syncing assets to $$bucket"; \
+	aws s3 sync site/ "s3://$$bucket/" --delete --profile cohns-$(ENV) \
+		--exclude '*.html' \
+		--cache-control 'public,max-age=3600,stale-while-revalidate=86400'; \
+	echo "==> syncing html to $$bucket"; \
+	aws s3 sync site/ "s3://$$bucket/" --delete --profile cohns-$(ENV) \
+		--exclude '*' --include '*.html' \
+		--cache-control 'public,max-age=0,must-revalidate'; \
 	echo "==> invalidating $$dist"; \
 	aws cloudfront create-invalidation --distribution-id "$$dist" --paths '/*' --profile cohns-$(ENV) >/dev/null
 
