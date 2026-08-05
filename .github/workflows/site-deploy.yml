@@ -35,14 +35,18 @@ jobs:
           role-to-assume: ${{ vars.SITE_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # Long cache on fingerprinted assets, no cache on HTML, so a deploy is
-      # visible immediately without giving up caching on everything else.
+      # Assets are served under stable, un-hashed names (/js/auth.js,
+      # /css/main.css, /vendor/hls.min.js, /favicon.svg), so we can't use an
+      # immutable year-long cache — browsers would pin a stale copy that a
+      # CloudFront invalidation can't reach. Cap the browser cache at an hour
+      # and lean on stale-while-revalidate for a fast, self-healing refresh.
+      # HTML stays no-cache so a deploy is visible immediately.
       - name: sync assets
         run: |
           aws s3 sync site/ "s3://${{ vars.SITE_BUCKET }}/" \
             --delete \
             --exclude '*.html' \
-            --cache-control 'public,max-age=31536000,immutable'
+            --cache-control 'public,max-age=3600,stale-while-revalidate=86400'
 
       - name: sync html
         run: |
