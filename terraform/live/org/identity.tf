@@ -98,6 +98,7 @@ resource "aws_ssoadmin_permission_set" "this" {
 }
 
 resource "aws_ssoadmin_managed_policy_attachment" "this" {
+  # checkov:skip=CKV_AWS_274:the Admin permission set intentionally grants AdministratorAccess to the platform admin (break-glass); the other sets are least-privilege.
   provider = aws.identity
   for_each = local.permission_sets
 

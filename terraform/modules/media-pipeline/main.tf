@@ -126,6 +126,8 @@ resource "aws_cloudwatch_log_group" "lambda" {
 }
 
 data "aws_iam_policy_document" "lambda" {
+  # checkov:skip=CKV_AWS_356:MediaConvert DescribeEndpoints/CreateJob/GetJob don't support resource-level ARNs.
+  # checkov:skip=CKV_AWS_111:no unconstrained write — PassRole is scoped by iam:PassedToService, logs to this group only.
   statement {
     sid       = "SubmitJobs"
     effect    = "Allow"
@@ -218,6 +220,15 @@ resource "aws_cloudfront_response_headers_policy" "cors" {
     access_control_allow_headers { items = ["*"] }
     access_control_allow_methods { items = ["GET", "HEAD", "OPTIONS"] }
     access_control_allow_origins { items = var.cors_origins }
+  }
+
+  security_headers_config {
+    strict_transport_security {
+      access_control_max_age_sec = 63072000 # 2 years
+      include_subdomains         = true
+      preload                    = true
+      override                   = true
+    }
   }
 }
 

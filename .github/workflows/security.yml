@@ -3,12 +3,12 @@ name: security
 # Static analysis of the Terraform. No cloud access — this reads code, it never
 # touches AWS, so there is no OIDC role and no credentials here.
 #
-# tflint GATES (the tree is clean today, so a regression should fail the PR).
-# checkov runs in REPORT mode: it lands findings in the repo's Security tab as
-# SARIF but soft-fails, so a backlog of pre-existing, mostly by-design findings
-# (read-only wildcard IAM on the CloudWatch reader, etc.) is visible and triageable
-# without wedging every PR. Flip `--soft-fail` off once the backlog is triaged or
-# suppressed with inline `checkov:skip` comments.
+# Both GATE. The original checkov backlog (93 findings) was triaged: genuine issues
+# fixed (SG descriptions, ALB drop-invalid-headers, SNS encryption, HLS CDN HSTS),
+# resource-specific exceptions marked with inline `checkov:skip` comments, and
+# policy-level trade-offs recorded in .checkov.yaml with a reason each. The tree is
+# clean, so any NEW finding now fails the PR. SARIF still uploads to the Security
+# tab for visibility.
 
 on:
   pull_request:
@@ -57,9 +57,9 @@ jobs:
           python-version: '3.12'
       - name: install checkov
         run: pip install checkov
-      - name: checkov (report mode)
+      - name: checkov (gating)
         run: >
-          checkov --directory terraform --framework terraform --soft-fail
+          checkov --directory terraform --framework terraform --config-file .checkov.yaml
           --output cli --output sarif --output-file-path console,results.sarif
       - name: upload sarif
         if: always()
