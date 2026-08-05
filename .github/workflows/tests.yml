@@ -1,0 +1,34 @@
+name: tests
+
+# Unit tests for the repo's helper scripts. Stdlib-only (no pip install), so this
+# is fast and has no dependencies to pin. Discovery picks up every scripts/test_*.py,
+# so new script tests are covered without touching this file.
+#
+# (The comments-api service has its own pytest suite; wiring that into CI — with its
+# dependency install — is a separate job for another day.)
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: unit tests
+        working-directory: scripts
+        run: python -m unittest discover -p 'test_*.py' --verbose
