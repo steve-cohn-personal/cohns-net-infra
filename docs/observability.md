@@ -104,11 +104,24 @@ terraform apply -var-file=env/dev.tfvars
 
 Then take the `slo_public_url` output and paste it into `PUBLIC_DASHBOARD_URL` in
 `site/js/observability.js`. Until it's set, the page renders a "pending apply" placeholder rather
-than a dead frame.
+than a dead frame. Publishing to prod is a content sync (`site-deploy.yml`, `environment=prod`);
+no `live/site` apply is needed because the page carries no CSP change (see below).
 
-Publishing that to prod is **two** deploys, and the order matters: apply `live/site` first, so the
-`frame-src https://*.grafana.net` CSP directive is live, *then* sync the content. Content first
-means the browser blocks the iframe until the CSP catches up.
+### The dashboard is linked, not embedded — Grafana Cloud can't be iframed
+
+We tried the obvious thing first: embed the public dashboard in an `<iframe>` and widen the site
+CSP with `frame-src https://*.grafana.net`. It doesn't work. Grafana Cloud serves the public
+dashboard with `X-Frame-Options: deny` and CSP `frame-ancestors 'none'`, and that is **not
+configurable on Cloud** — `allow_embedding` is a self-hosted `grafana.ini` setting, there is no
+Embed tab in the share modal, and Grafana support confirms modifying `X-Frame-Options` is
+unsupported for anti-clickjacking reasons. The framed resource declines regardless of what our
+CSP permits.
+
+So `site/js/observability.js` renders a preview card that **links out** to the dashboard in a new
+tab, and `live/site` carries **no** `frame-src` (a dormant directive a review would flag). If
+Grafana ever ships a tenant `frame-ancestors` allowlist, swapping back is small: re-add `frame-src`
+to the CSP and inject an `<iframe>` instead of the preview card. Loading the dashboard URL directly
+works perfectly — only framing is blocked — so don't read a good direct load as a working embed.
 
 ### Panels are pinned to a datasource uid, not a template variable
 

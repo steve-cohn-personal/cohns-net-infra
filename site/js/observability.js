@@ -1,11 +1,16 @@
-// The live dashboard embed.
+// The live dashboard link-out.
 //
-// Fill in the public dashboard URL from the `slo_public_url` output of
-// `terraform apply` in terraform/live/observability — it looks like
-// https://<stack>.grafana.net/public-dashboards/<access-token>
+// Grafana Cloud refuses to be iframed: the public dashboard responds with
+// `X-Frame-Options: deny` and CSP `frame-ancestors 'none'`, and Cloud exposes no
+// way to change that (it is self-hosted-only via allow_embedding). So this renders
+// a preview card that links out to the dashboard in a new tab rather than an
+// embed. If Grafana ever adds a tenant frame-ancestors allowlist, swapping back to
+// an <iframe src=...> here plus re-adding frame-src to the live/site CSP is a
+// small change.
 //
-// Left empty, the page shows a "not yet wired" placeholder rather than an empty
-// frame, so the site is never broken between the code landing and the apply.
+// URL is the `slo_public_url` output of terraform apply in
+// terraform/live/observability. Left empty, the card reads "pending apply" rather
+// than linking nowhere.
 const PUBLIC_DASHBOARD_URL = 'https://indigomarzipan3418.grafana.net/public-dashboards/fe1e3f72de88459193c4cf4f800641fb';
 
 (function () {
@@ -22,14 +27,22 @@ const PUBLIC_DASHBOARD_URL = 'https://indigomarzipan3418.grafana.net/public-dash
     return;
   }
 
-  // Built here rather than hardcoded in the HTML so the URL lives in exactly one
-  // place. The site CSP allows frame-src https://*.grafana.net.
-  const iframe = document.createElement('iframe');
-  iframe.src = PUBLIC_DASHBOARD_URL;
-  iframe.title = 'cohns.net availability, latency, and cost — live';
-  iframe.loading = 'lazy';
-  iframe.referrerPolicy = 'no-referrer';
-  frame.appendChild(iframe);
+  // A preview panel, not a dead box: name what's live, then a prominent link out.
+  // The whole panel is the click target so it reads as one affordance.
+  const card = document.createElement('a');
+  card.className = 'o11y-preview';
+  card.href = PUBLIC_DASHBOARD_URL;
+  card.target = '_blank';
+  card.rel = 'noopener';
+  card.innerHTML = [
+    '<span class="o11y-preview__eyebrow">Live · Grafana Cloud</span>',
+    '<span class="o11y-preview__title">Availability &amp; Latency — SLO</span>',
+    '<span class="o11y-preview__desc">Uptime and response time for the public sites, ' +
+      'probed every minute from five continents. Public dashboard, no login.</span>',
+    '<span class="o11y-preview__cta">Open the live dashboard →</span>',
+  ].join('');
+  frame.appendChild(card);
 
-  if (link) link.href = PUBLIC_DASHBOARD_URL;
+  // The whole panel links out, so the separate text link below is redundant.
+  if (link && link.parentElement) link.parentElement.hidden = true;
 })();
