@@ -392,6 +392,48 @@ footer {
 .admin-actions { white-space: nowrap; }
 .admin-actions .authbar-btn { margin: 0 0.4rem 0.3rem 0; }
 
+/* Recipe admin: import bar + editor form. */
+.admin-nav { margin: 0 0 1rem; }
+.admin-nav a { color: var(--accent); text-decoration: none; }
+
+.recipe-admin-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.import-row { display: flex; gap: 0.5rem; flex: 1 1 24rem; }
+.import-row .form-input { flex: 1; }
+.btn-plain { color: var(--muted); }
+.btn-plain:hover { border-color: var(--accent); color: var(--accent); }
+
+.form-input {
+  font: inherit;
+  width: 100%;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.45rem 0.6rem;
+}
+.form-input:focus { outline: none; border-color: var(--accent); }
+textarea.form-input { resize: vertical; line-height: 1.5; }
+
+.recipe-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  margin-bottom: 2rem;
+}
+.recipe-form h3 { margin: 0 0 1rem; }
+.form-row { display: block; margin-bottom: 1rem; }
+.form-row > span { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.3rem; }
+.form-check { display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0 1.25rem; }
+.form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+.form-status { color: var(--muted); font-size: 0.9rem; }
+
 /* --- observability embed --- */
 
 /* A responsive frame for the Grafana public dashboard: hold a 16:9 box that

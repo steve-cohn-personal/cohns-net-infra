@@ -96,6 +96,12 @@ class RecipeAdmin(RecipePublic):
     updated_at: datetime
 
 
+class RecipeImportRequest(BaseModel):
+    """URL to import a recipe from (moderator only)."""
+
+    url: str = Field(min_length=1, max_length=2000)
+
+
 # --- User administration ----------------------------------------------------
 
 
