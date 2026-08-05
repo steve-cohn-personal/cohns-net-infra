@@ -8,7 +8,9 @@
 
 resource "aws_sns_topic" "alarms" {
   name = "observability-${var.environment}-alarms"
-  tags = local.tags
+  # SSE with the AWS-managed SNS key — encryption at rest, no key to manage or pay for.
+  kms_master_key_id = "alias/aws/sns"
+  tags              = local.tags
 }
 
 # Email subscriptions require a one-time confirmation click per address. Add an

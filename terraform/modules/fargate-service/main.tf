@@ -105,6 +105,7 @@ resource "aws_vpc_security_group_ingress_rule" "alb_http" {
 
 resource "aws_vpc_security_group_egress_rule" "alb_all" {
   security_group_id = aws_security_group.alb.id
+  description       = "All outbound (ALB to targets and ACM/OCSP)"
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
 }
@@ -127,6 +128,7 @@ resource "aws_vpc_security_group_ingress_rule" "task_from_alb" {
 
 resource "aws_vpc_security_group_egress_rule" "task_all" {
   security_group_id = aws_security_group.task.id
+  description       = "All outbound (image pulls, Secrets Manager, AWS APIs)"
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
 }
@@ -139,7 +141,9 @@ resource "aws_lb" "this" {
   load_balancer_type = "application"
   subnets            = var.public_subnet_ids
   security_groups    = [aws_security_group.alb.id]
-  tags               = var.tags
+  # Strip malformed HTTP headers at the edge rather than passing them to the app.
+  drop_invalid_header_fields = true
+  tags                       = var.tags
 }
 
 resource "aws_lb_target_group" "this" {

@@ -52,6 +52,7 @@ data "aws_iam_policy_document" "route53_writer_trust" {
 }
 
 data "aws_iam_policy_document" "route53_writer" {
+  # checkov:skip=CKV_AWS_356:route53 GetChange/ListHostedZones take no resource-level ARN; the change action is scoped to www/steve by the record-name condition below.
   # Change only the prod-owned record sets. The condition is what makes this safe:
   # an attempt to touch any other name in the zone is denied by the policy, so the
   # blast radius is www/steve, not cohns.net.

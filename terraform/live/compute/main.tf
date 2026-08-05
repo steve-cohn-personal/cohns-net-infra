@@ -119,7 +119,9 @@ module "service" {
 # a one-time confirmation click per address.
 resource "aws_sns_topic" "access_requests" {
   name = "comments-${var.environment}-access-requests"
-  tags = local.tags
+  # SSE with the AWS-managed SNS key — encryption at rest, no key to manage or pay for.
+  kms_master_key_id = "alias/aws/sns"
+  tags              = local.tags
 }
 
 resource "aws_sns_topic_subscription" "access_requests_email" {

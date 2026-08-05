@@ -1,0 +1,67 @@
+# Checkov policy for cohns.net. These are the checks accepted at the policy level,
+# each an explicit, documented decision — not a blanket mute. Resource-specific
+# exceptions (IAM wildcards, AdministratorAccess) are inline `checkov:skip`
+# comments at the resource instead, so a genuinely over-broad policy added later is
+# still caught. Genuine findings were FIXED, not skipped: SG rule descriptions, ALB
+# drop-invalid-headers, SNS at-rest encryption, HLS CDN HSTS.
+#
+# The bar for skipping here: a deliberate cost trade-off for a personal project, a
+# by-design architecture choice, or a resource that is torn down on purpose. Where a
+# skip is really "deferred work," it is called out as such below.
+
+skip-check:
+  # --- Cost trade-offs: real money for little benefit on a personal showcase ---
+  - CKV_AWS_68 # CloudFront WAF — ~$5+/mo; no attack surface worth it on a static site
+  - CKV2_AWS_47 # CloudFront WAFv2 Log4j AMR — same WAF cost decision
+  - CKV2_AWS_28 # public ALB behind WAF — same
+  - CKV_AWS_86 # CloudFront access logging — needs a log bucket + storage cost
+  - CKV_AWS_91 # ALB access logging — same
+  - CKV_AWS_18 # S3 access logging — same
+  - CKV_AWS_144 # S3 cross-region replication — doubles storage for no DR requirement
+  - CKV_AWS_145 # S3 KMS CMK — public/showcase content is fine on SSE-S3 (AES256)
+  - CKV_AWS_136 # ECR KMS CMK — image layers are public artifacts; AES256 suffices
+  - CKV_AWS_158 # CloudWatch Logs KMS CMK — a managed key per log group, for app logs
+  - CKV_AWS_338 # CloudWatch Logs >= 1yr retention — a year of logs is pure cost here
+  - CKV_AWS_35 # CloudTrail KMS CMK — the trail is already SSE-S3 encrypted at rest
+  - CKV_AWS_252 # CloudTrail SNS notifications — no one is paging on trail delivery
+  - CKV2_AWS_10 # CloudTrail -> CloudWatch Logs — a second copy + ingest cost
+  - CKV2_AWS_39 # Route53 query logging — per-query CloudWatch cost, no need
+  - CKV2_AWS_11 # VPC flow logs — ingest/storage cost; nothing consumes them yet
+  - CKV_AWS_65 # ECS Container Insights — extra CloudWatch cost on a $0-at-idle service
+  - CKV_AWS_76 # API Gateway access logging — cost; Phase 3 photo-library, not built
+  - CKV_AWS_353 # RDS Performance Insights — cost on a scale-to-zero dev cluster
+  - CKV_AWS_118 # RDS enhanced monitoring — per-second metrics cost, not needed
+  - CKV_AWS_324 # RDS log capture — cost
+  - CKV2_AWS_27 # RDS query logging — cost
+  - CKV_AWS_327 # RDS KMS CMK — Aurora is encrypted with the default key already
+  - CKV2_AWS_8 # RDS AWS Backup plan — automated backups are on; see the restore-drill roadmap item
+
+  # --- By-design architecture (documented in the modules) ---
+  - CKV_AWS_130 # subnet map_public_ip — Fargate tasks run in public subnets to avoid a NAT (~$32/mo)
+  - CKV_AWS_333 # ECS assign_public_ip — same NAT-free design
+  - CKV_AWS_260 # SG ingress 0.0.0.0/0:80 — public web ALB; :80 redirects to :443
+  - CKV_AWS_378 # ALB target group HTTP — TLS terminates at the ALB; the hop to the task is a private SG
+  - CKV_AWS_374 # CloudFront geo restriction — the site is intentionally global
+  - CKV_AWS_310 # CloudFront origin failover — single origin by design
+  - CKV_AWS_305 # CloudFront default root object — the media dist serves keyed objects, has no root
+  - CKV_AWS_51 # ECR immutable tags — sha + latest by design (see the note in ecr.tf)
+
+  # --- Torn down on purpose (protection would block the teardown that holds the bill at $0) ---
+  - CKV_AWS_150 # ALB deletion protection
+  - CKV_AWS_139 # RDS deletion protection
+
+  # --- Deferred: reasonable someday, disproportionate now ---
+  - CKV_AWS_50 # Lambda X-Ray tracing (two small event-driven Phase 3 lambdas)
+  - CKV_AWS_272 # Lambda code signing
+  - CKV_AWS_173 # Lambda env var KMS CMK
+  - CKV_AWS_117 # Lambda in a VPC (no VPC resources to reach)
+  - CKV_AWS_116 # Lambda DLQ
+  - CKV_AWS_115 # Lambda reserved concurrency
+  - CKV_AWS_226 # RDS auto minor version upgrades
+  - CKV_AWS_162 # RDS IAM database authentication
+  - CKV_AWS_313 # RDS copy tags to snapshots
+  - CKV_AWS_21 # S3 versioning — media ingest/output are ephemeral transcode buckets
+  - CKV2_AWS_61 # S3 lifecycle configuration
+  - CKV2_AWS_62 # S3 event notifications
+  - CKV2_AWS_38 # Route53 DNSSEC — genuine future hardening (KSK + KMS + parent DS records)
+  - CKV2_AWS_12 # default SG restricts all traffic — worth adding to the network module later
