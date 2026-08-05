@@ -7,18 +7,19 @@
   "editable": true,
   "refresh": "1m",
   "time": { "from": "now-6h", "to": "now" },
-  "templating": {
-    "list": [
-      {
-        "name": "cw",
-        "label": "CloudWatch",
-        "type": "datasource",
-        "query": "cloudwatch",
-        "hide": 0,
-        "current": {}
-      }
-    ]
-  },
+  "_comment": [
+    "${cw} and ${db_cluster} are TERRAFORM templatefile placeholders, not Grafana",
+    "template variables. dashboards.tf substitutes them at apply time with the",
+    "CloudWatch datasource uid and the Aurora cluster id. The uid is injected (not a",
+    "datasource variable) because this board is shared publicly and public dashboards",
+    "don't resolve template variables — every panel would read 'Datasource was not",
+    "found'. The cluster id is injected as an exact dimension (matchExact:true) so each",
+    "query returns a single MetricStat series with a clean label. The cost panel's",
+    "'x $0.12' is a client-side calculateField transformation, NOT CloudWatch metric",
+    "math: Grafana PUBLIC dashboards return 500 on a CloudWatch math expression (the",
+    "raw GetMetricData math works fine when queried directly — it's a public-dash limit)."
+  ],
+  "templating": { "list": [] },
   "panels": [
     {
       "id": 1,
@@ -34,12 +35,12 @@
           "namespace": "AWS/RDS",
           "metricName": "ServerlessDatabaseCapacity",
           "statistic": "Average",
-          "dimensions": { "DBClusterIdentifier": "*" },
-          "matchExact": false,
+          "dimensions": { "DBClusterIdentifier": "${db_cluster}" },
+          "matchExact": true,
           "region": "default",
           "metricQueryType": 0,
           "metricEditorMode": 0,
-          "label": "ACU — {{DBClusterIdentifier}}"
+          "label": "ACU — ${db_cluster}"
         }
       ]
     },
@@ -63,30 +64,35 @@
           }
         }
       },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/hour/" },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
       "targets": [
         {
           "refId": "A",
-          "hide": true,
           "datasource": { "type": "cloudwatch", "uid": "${cw}" },
           "namespace": "AWS/RDS",
           "metricName": "ServerlessDatabaseCapacity",
           "statistic": "Average",
-          "dimensions": { "DBClusterIdentifier": "*" },
-          "matchExact": false,
+          "dimensions": { "DBClusterIdentifier": "${db_cluster}" },
+          "matchExact": true,
           "region": "default",
-          "id": "m1",
           "metricQueryType": 0,
-          "metricEditorMode": 0
-        },
+          "metricEditorMode": 0,
+          "label": "ACU"
+        }
+      ],
+      "transformations": [
         {
-          "refId": "B",
-          "datasource": { "type": "cloudwatch", "uid": "${cw}" },
-          "expression": "m1 * 0.12",
-          "metricQueryType": 0,
-          "metricEditorMode": 1,
-          "region": "default",
-          "label": "$ / hour (ACU x $0.12)"
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "binary": { "left": "ACU", "operator": "*", "right": "0.12" },
+            "alias": "$ / hour (ACU x $0.12)",
+            "replaceFields": true
+          }
         }
       ]
     },
@@ -104,12 +110,12 @@
           "namespace": "AWS/RDS",
           "metricName": "DatabaseConnections",
           "statistic": "Maximum",
-          "dimensions": { "DBClusterIdentifier": "*" },
-          "matchExact": false,
+          "dimensions": { "DBClusterIdentifier": "${db_cluster}" },
+          "matchExact": true,
           "region": "default",
           "metricQueryType": 0,
           "metricEditorMode": 0,
-          "label": "connections — {{DBClusterIdentifier}}"
+          "label": "connections — ${db_cluster}"
         }
       ]
     }

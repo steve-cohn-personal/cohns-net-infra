@@ -9,8 +9,13 @@ output "slo_dashboard_url" {
 }
 
 output "slo_public_url" {
-  description = "The public SLO dashboard — embed this on steve.cohns.net/observability."
+  description = "The public SLO dashboard — linked from cohns.net/observability."
   value       = "${var.grafana_url}/public-dashboards/${grafana_dashboard_public.slo.access_token}"
+}
+
+output "aurora_cost_public_url" {
+  description = "The public Aurora scale-to-zero cost dashboard — linked from cohns.net/observability. Null until enable_cloudwatch is true."
+  value       = var.enable_cloudwatch ? "${var.grafana_url}/public-dashboards/${grafana_dashboard_public.aurora_cost[0].access_token}" : null
 }
 
 output "cloudwatch_reader_role_arn" {
