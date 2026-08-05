@@ -34,8 +34,11 @@ app, image, and database don't change.
 - [x] `live/compute` — ECS Fargate + ALB (public-subnet tasks, no NAT), regional ACM, DNS
 - [x] Credentials at runtime: app reads the DB secret (task role); JWT signing key injected from
       Secrets Manager by ECS (execution role) — no secret in the image or plain env
-- [x] Live in dev: **https://api.dev.cohns.net** — post → moderate → publish verified over HTTPS;
+- [x] Verified in dev: **https://api.dev.cohns.net** — post → moderate → publish over HTTPS;
       Aurora auto-pauses under light traffic (NullPool)
+- [ ] `live/compute` is **currently torn down** to hold the bill at ~$0 — the ALB/ECS are gone
+      (Aurora `comments-dev` stays up, scale-to-zero). Re-applying it is the trigger that lights up
+      the dormant ALB observability (see Phase 4). Re-apply when there's a reason to demo the API.
 - [ ] Apply stage / prod compute (dev only so far)
 - [ ] EKS variant (Karpenter, AWS Load Balancer Controller, external-dns) — optional alternative;
       this is where Ansible would earn its keep (node bootstrap, config)
@@ -53,25 +56,38 @@ Reordered: **cooking first**, then the (private) photo library.
    [account-layout.md](account-layout.md); the same reasoning applies to personal data about minors.
 4. **Resume** rendered from structured data rather than a checked-in PDF.
 
-## Phase 4 — Operations (in progress)
+## Phase 4 — Operations ✅ live in prod (2026-08-05)
 
 Pulled ahead of the remaining Phase 3 content: observability is the part of this platform worth
 showing, so it became a content area of its own —
-**[steve.cohns.net/observability](https://steve.cohns.net/observability/)**. Design decisions and
-trade-offs are written up in [observability.md](observability.md).
+**[cohns.net/observability](https://cohns.net/observability/)** (also on www / steve). Design
+decisions and trade-offs are written up in [observability.md](observability.md).
 
 - [x] Grafana Cloud (the "managed equivalent"), free tier — dashboards, data sources, synthetic
       checks, and alert wiring all as Terraform in `live/observability`. No click-ops.
-- [x] Global synthetic monitoring of www / steve / the dev API, with per-endpoint SLO panels
-- [x] CloudWatch read by a role Grafana Cloud **assumes** (external-id gated, read-only) —
-      no access key issued to a vendor, consistent with the OIDC/Identity Center model
-- [x] RED dashboards from ALB metrics — no agent, no extra compute; plus `/metrics` on the
-      comments API for handler-level detail
-- [x] Aurora scale-to-zero capacity + estimated hourly cost as a live panel
-- [x] CloudWatch alarms → SNS (5xx, p95 latency, unhealthy targets) — paging stays on AWS so it
-      doesn't depend on the dashboard vendor being up
+- [x] Global synthetic monitoring of www / steve / dev from five probes, per-endpoint SLO panels —
+      **public SLO board live**
+- [x] CloudWatch read by a role Grafana Cloud **assumes** (external-id gated, read-only) — no access
+      key issued to a vendor, consistent with the OIDC/Identity Center model. Trust:
+      `arn:aws:iam::008923505280:root` (Grafana's us-west-0 data-source account) + `sts:ExternalId`.
+- [x] Aurora scale-to-zero capacity + estimated $/hour as a **live public panel** — reads $0 at idle
+      (the $/hour is a client-side transform: Grafana *public* dashboards 500 on CloudWatch
+      metric-math)
+- [x] `/metrics` on the comments API (prometheus-fastapi-instrumentator) for handler-level detail
 - [x] Budget alerts per account (this is a personal project; a runaway bill is the realistic risk)
-- [ ] Apply the stack (needs the Grafana Cloud account + tokens), then embed the public dashboard
+- [x] SNS paging path (topic + confirmed email) — kept on AWS so it doesn't depend on the dashboard
+      vendor being up
+- [x] Stack applied (dev) and **surfaced on the site** — links out rather than embeds: Grafana Cloud
+      serves `X-Frame-Options: deny` and can't be iframed, so `/observability` renders link-out cards
+
+**Dormant until `live/compute` is re-applied** (no ALB exists while compute is torn down; each is
+gated so nothing renders as a false outage):
+- [ ] RED dashboards from ALB metrics (built; gated on `enable_cloudwatch && enable_alb_alarms`)
+- [ ] ALB CloudWatch alarms → SNS (5xx, p95 latency, unhealthy targets) — the topic is live; the
+      alarms are gated on `enable_alb_alarms`
+- [ ] Aurora "Database connections" panel — live board, but empty until traffic connects
+
+**Still open:**
 - [ ] SLO burn-rate alerting, once traffic makes the math meaningful
 - [ ] Backup and restore drill — a backup nobody has restored is a hypothesis, not a backup
 - [ ] tflint, tfsec/checkov, and Dependabot in CI
