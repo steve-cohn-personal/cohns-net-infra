@@ -58,6 +58,10 @@ locals {
     "script-src 'self'",
     "connect-src 'self' ${local.api_origin} https://media.cohns.net https://cohns-net-auth.auth.us-west-2.amazoncognito.com https://soweh7qos7.execute-api.us-west-2.amazonaws.com",
     "media-src 'self' blob: https://media.cohns.net",
+    # The /observability page embeds a Grafana Cloud public dashboard. frame-src
+    # governs what this site may embed; frame-ancestors (below) still forbids
+    # anyone from embedding us. Scoped to Grafana's hosted domain, nothing wider.
+    "frame-src https://*.grafana.net",
     "object-src 'none'",
     "frame-ancestors 'none'",
     "base-uri 'self'",

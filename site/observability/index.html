@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Observability — cohns.net</title>
+  <meta name="description" content="This site watches itself: live uptime, latency, and cost dashboards for cohns.net, defined as code and served from Grafana Cloud.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <header class="masthead masthead--sub">
+    <div class="wrap">
+      <div id="authbar" class="authbar"></div>
+      <p class="eyebrow"><a href="/">cohns.net</a></p>
+      <h1>Observability</h1>
+      <p class="tagline">The site watches itself — live, and defined as code.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="card">
+      <h2>Dogfooding the stack</h2>
+      <p>
+        Everything on this page is the real infrastructure behind cohns.net, observed in
+        real time. Synthetic probes hit the site and API from five continents; a CloudWatch
+        data source reads the ALB, ECS, and Aurora metrics directly. Every dashboard, probe,
+        alarm, and the read-only IAM role Grafana assumes are
+        <a href="https://github.com/steve-cohn-personal/cohns-net-infra/tree/main/terraform/live/observability">Terraform in this repo</a>
+        — no dashboard was built by clicking.
+      </p>
+      <ul class="skills">
+        <li><span>Platform</span> Grafana Cloud (free tier) — $0/mo</li>
+        <li><span>Synthetics</span> Global HTTP probes, per-endpoint SLOs</li>
+        <li><span>Metrics</span> CloudWatch via keyless role-assumption</li>
+        <li><span>Alerting</span> CloudWatch alarms → SNS; per-account budget</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Cost as a first-class metric</h2>
+      <p>
+        The comments API runs on Aurora Serverless v2 with a floor of zero. Under no load the
+        database scales to nothing and the compute bill goes with it. The dashboard below plots
+        that capacity live — you can watch cost fall to $0 and wake on the next request. Cost
+        control isn't a spreadsheet exercise here; it's a graph with a current value.
+      </p>
+    </section>
+
+    <!-- The embed is injected by /js/observability.js, which holds the public
+         dashboard URL in one place (the `slo_public_url` output of live/observability).
+         Until that's filled in, this renders a placeholder rather than a dead frame. -->
+    <section class="card o11y-embed">
+      <div class="o11y-frame"></div>
+      <p class="links">
+        <a id="o11y-live" href="#" target="_blank" rel="noopener">Open the live dashboard →</a>
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>How it's wired</h2>
+      <p>
+        Blackbox synthetics need no account access, so one set of probes covers the public
+        sites and the API alike. The internals — request rate, 5xx, p95 latency, Aurora
+        capacity — come from CloudWatch, read by a role Grafana Cloud assumes with an external
+        id and read-only permissions. Paging stays on AWS-native alarms into SNS, so the alert
+        path doesn't depend on the dashboard vendor being up. The write-up lives in
+        <a href="https://github.com/steve-cohn-personal/cohns-net-infra/blob/main/docs/observability.md">docs/observability.md</a>.
+      </p>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <p><a href="/">← Back to cohns.net</a></p>
+  </footer>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/observability.js"></script>
+</body>
+</html>
