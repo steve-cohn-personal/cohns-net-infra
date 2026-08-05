@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import require_moderator
 from app.db import get_session
 from app.models import Recipe
-from app.schemas import RecipeAdmin, RecipePublic, RecipeWrite
+from app.schemas import CATEGORIES, RecipeAdmin, RecipePublic, RecipeWrite
 
 router = APIRouter(tags=["recipes"])
 
@@ -14,11 +14,18 @@ router = APIRouter(tags=["recipes"])
 # --- Public reads -----------------------------------------------------------
 
 
+@router.get("/recipes/categories", response_model=list[str])
+async def list_categories():
+    """The fixed category vocabulary, in display order — one source for the front-end."""
+    return list(CATEGORIES)
+
+
 @router.get("/recipes", response_model=list[RecipePublic])
-async def list_recipes(session: AsyncSession = Depends(get_session)):
-    result = await session.execute(
-        select(Recipe).where(Recipe.published.is_(True)).order_by(Recipe.title.asc())
-    )
+async def list_recipes(category: str | None = None, session: AsyncSession = Depends(get_session)):
+    stmt = select(Recipe).where(Recipe.published.is_(True))
+    if category is not None:
+        stmt = stmt.where(Recipe.category == category)
+    result = await session.execute(stmt.order_by(Recipe.title.asc()))
     return list(result.scalars())
 
 

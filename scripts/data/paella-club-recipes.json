@@ -2,6 +2,7 @@
   {
     "slug": "vegetable-broth",
     "title": "Vegetable Broth",
+    "category": "Main Courses",
     "summary": "A clean, aromatic vegetable stock — the base for the vegetable and wild-mushroom paellas. Makes about 3 liters. From a paella class at The Paella Club, Barcelona.",
     "ingredients": [
       "1kg white onion",
@@ -34,6 +35,7 @@
   {
     "slug": "seafood-broth",
     "title": "Seafood Broth",
+    "category": "Main Courses",
     "summary": "A rich shellfish stock built from crustacean shells and white fish — the base for the seafood and black-rice paellas. Makes about 3 liters. From a paella class at The Paella Club, Barcelona.",
     "ingredients": [
       "750g crustacean shells",
@@ -63,6 +65,7 @@
   {
     "slug": "beef-broth",
     "title": "Beef Broth",
+    "category": "Main Courses",
     "summary": "A deep roasted-bone stock — the meat broth for the pork/chicken paella. Makes about 3 liters. From a paella class at The Paella Club, Barcelona.",
     "ingredients": [
       "1kg beef bones",
@@ -94,6 +97,7 @@
   {
     "slug": "seafood-paella",
     "title": "Seafood Paella",
+    "category": "Main Courses",
     "summary": "Shrimp and squid over saffron bomba rice with a slow-built sofrito and a crisp socarrat. Serves 2. From a paella class at The Paella Club, Barcelona.",
     "ingredients": [
       "4 whole shrimp",
@@ -140,6 +144,7 @@
   {
     "slug": "black-rice-paella",
     "title": "Black Rice Paella",
+    "category": "Main Courses",
     "summary": "Squid-ink arroz negro — squid over bomba rice with parsley and a crisp socarrat. Serves 2. From a paella class at The Paella Club, Barcelona.",
     "ingredients": [
       "150g squid, cut in small cubes",
@@ -185,6 +190,7 @@
   {
     "slug": "wild-mushroom-black-truffle-paella",
     "title": "Wild Mushroom & Black Truffle Paella",
+    "category": "Main Courses",
     "summary": "An earthy vegetarian paella — wild mushrooms and a caramelized carrot-and-onion sofrito over bomba rice, finished with black truffle oil. Serves 2. From a paella class at The Paella Club, Barcelona.",
     "ingredients": [
       "½ leek",
@@ -229,6 +235,7 @@
   {
     "slug": "pork-chicken-spring-garlic-paella",
     "title": "Pork/Chicken & Spring Garlic Paella",
+    "category": "Main Courses",
     "summary": "A meat paella — paprika-rubbed pork or chicken with spring garlic, wild mushrooms, and saffron over bomba rice. Serves 2. From a paella class at The Paella Club, Barcelona.",
     "ingredients": [
       "250g pork loin or chicken wings",

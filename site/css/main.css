@@ -200,6 +200,43 @@ footer {
 .recipe-card h3 { margin: 0 0 0.4rem; font-size: 1.15rem; }
 .recipe-card p { margin: 0; color: var(--muted); font-size: 0.95rem; }
 
+/* Category filter chips + grouped sections on the recipe list. */
+.recipe-filters { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1.5rem 0 0.5rem; }
+.chip {
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.chip:hover { border-color: var(--accent); }
+.chip.is-active { border-color: var(--accent); color: var(--accent); }
+
+.recipe-group > h2 {
+  font-size: 0.8rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.4rem;
+  margin: 1.75rem 0 0;
+}
+.recipe-group .recipe-grid { margin-top: 1.25rem; }
+
+.recipe-category { margin: 0 0 0.25rem; }
+.recipe-category a {
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-decoration: none;
+}
+.recipe-category a:hover { text-decoration: underline; }
+
 .recipe-detail { padding: 2rem 0 3rem; }
 .recipe-detail h1 { margin: 0 0 0.5rem; font-size: clamp(1.8rem, 5vw, 2.6rem); }
 .recipe-summary { color: var(--muted); font-size: 1.1rem; margin: 0 0 1.5rem; }

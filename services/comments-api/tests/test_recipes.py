@@ -59,3 +59,32 @@ async def test_duplicate_slug_rejected(client):
 async def test_slug_validation(client):
     bad = {**RECIPE, "slug": "Not a Slug!"}
     assert (await client.post("/recipes", json=bad, headers=auth(MOD()))).status_code == 422
+
+
+async def test_categories_endpoint(client):
+    cats = (await client.get("/recipes/categories")).json()
+    assert cats == ["Breads", "Candy", "Quick Meals", "Appetizers", "Main Courses", "Desserts"]
+
+
+async def test_category_round_trips_and_is_public(client):
+    r = await client.post("/recipes", json={**RECIPE, "category": "Breads"}, headers=auth(MOD()))
+    assert r.status_code == 201 and r.json()["category"] == "Breads"
+    assert (await client.get("/recipes/pan-con-tomate")).json()["category"] == "Breads"
+
+
+async def test_null_category_allowed(client):
+    r = await client.post("/recipes", json={**RECIPE, "category": None}, headers=auth(MOD()))
+    assert r.status_code == 201 and r.json()["category"] is None
+
+
+async def test_unknown_category_rejected(client):
+    bad = {**RECIPE, "category": "Breakfast"}
+    assert (await client.post("/recipes", json=bad, headers=auth(MOD()))).status_code == 422
+
+
+async def test_filter_by_category(client):
+    await client.post("/recipes", json={**RECIPE, "slug": "sourdough", "category": "Breads"}, headers=auth(MOD()))
+    await client.post("/recipes", json={**RECIPE, "slug": "fudge", "category": "Candy"}, headers=auth(MOD()))
+    breads = (await client.get("/recipes", params={"category": "Breads"})).json()
+    assert [x["slug"] for x in breads] == ["sourdough"]
+    assert (await client.get("/recipes", params={"category": "Desserts"})).json() == []

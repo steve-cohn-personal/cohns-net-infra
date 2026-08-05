@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models import CommentStatus
 
@@ -38,18 +38,38 @@ class ModerationAction(BaseModel):
 
 # --- Recipes ---------------------------------------------------------------
 
+# The fixed set of recipe categories, in display order. A recipe's category is
+# optional (null = uncategorized); anything else must be one of these. Kept here so
+# the schema, the /recipes/categories endpoint, and the front-end share one source.
+CATEGORIES: tuple[str, ...] = (
+    "Breads",
+    "Candy",
+    "Quick Meals",
+    "Appetizers",
+    "Main Courses",
+    "Desserts",
+)
+
 
 class RecipeWrite(BaseModel):
     """Create/update payload (moderator only)."""
 
     slug: str = Field(min_length=1, max_length=200, pattern=r"^[a-z0-9][a-z0-9-]*$")
     title: str = Field(min_length=1, max_length=200)
+    category: str | None = Field(default=None, max_length=50)
     summary: str | None = Field(default=None, max_length=2000)
     ingredients: list[str] = Field(default_factory=list)
     steps: list[str] = Field(default_factory=list)
     hero_image_url: str | None = Field(default=None, max_length=500)
     video_key: str | None = Field(default=None, max_length=300)
     published: bool = False
+
+    @field_validator("category")
+    @classmethod
+    def _known_category(cls, v: str | None) -> str | None:
+        if v is not None and v not in CATEGORIES:
+            raise ValueError(f"category must be null or one of: {', '.join(CATEGORIES)}")
+        return v
 
 
 class RecipePublic(BaseModel):
@@ -59,6 +79,7 @@ class RecipePublic(BaseModel):
 
     slug: str
     title: str
+    category: str | None
     summary: str | None
     ingredients: list[str]
     steps: list[str]
