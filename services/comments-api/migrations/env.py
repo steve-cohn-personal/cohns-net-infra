@@ -3,7 +3,7 @@ from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import pool
-from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.config import get_settings
 from app.models import Base
@@ -12,13 +12,13 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# The one source of truth for the URL is the app settings. Use build_database_url()
-# — the same method the app uses — so that with db_secret_arn set it assembles the
-# Postgres URL from Secrets Manager. The raw database_url field is only the SQLite
-# default; using it here silently pointed prod migrations at SQLite.
-config.set_main_option("sqlalchemy.url", get_settings().build_database_url())
-
 target_metadata = Base.metadata
+
+# The URL comes from the app settings' build_database_url() — the same source the
+# app uses, so with db_secret_arn set it assembles the Postgres URL from Secrets
+# Manager. It is passed straight to the engine, never through config.set_main_option:
+# configparser does %-interpolation, and the RDS password is URL-encoded (contains
+# %XX), which configparser would reject.
 
 
 def run_migrations_offline() -> None:
@@ -39,11 +39,7 @@ def _run(connection) -> None:
 
 
 async def run_migrations_online() -> None:
-    connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    connectable = create_async_engine(get_settings().build_database_url(), poolclass=pool.NullPool)
     async with connectable.connect() as connection:
         await connection.run_sync(_run)
     await connectable.dispose()
