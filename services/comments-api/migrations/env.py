@@ -12,15 +12,18 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# The one source of truth for the URL is the app settings.
-config.set_main_option("sqlalchemy.url", get_settings().database_url)
+# The one source of truth for the URL is the app settings. Use build_database_url()
+# — the same method the app uses — so that with db_secret_arn set it assembles the
+# Postgres URL from Secrets Manager. The raw database_url field is only the SQLite
+# default; using it here silently pointed prod migrations at SQLite.
+config.set_main_option("sqlalchemy.url", get_settings().build_database_url())
 
 target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
     context.configure(
-        url=get_settings().database_url,
+        url=get_settings().build_database_url(),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
