@@ -41,21 +41,24 @@
       <h2>Cost as a first-class metric</h2>
       <p>
         The comments API runs on Aurora Serverless v2 with a floor of zero. Under no load the
-        database scales to nothing and the compute bill goes with it. The live board tracks
-        availability and latency today; the Aurora capacity-and-cost panel lands with the
-        CloudWatch data source next. Cost control isn't a spreadsheet exercise here — it's a
-        metric with a current value.
+        database scales to nothing and the compute bill goes with it. The board below reads
+        capacity in ACU and estimated $/hour straight from CloudWatch — through a keyless assumed
+        role, no access keys — and sits at $0 while idle. Cost control isn't a spreadsheet
+        exercise here; it's a metric with a current value.
       </p>
     </section>
 
-    <!-- The embed is injected by /js/observability.js, which holds the public
-         dashboard URL in one place (the `slo_public_url` output of live/observability).
-         Until that's filled in, this renders a placeholder rather than a dead frame. -->
+    <!-- Preview cards are injected by /js/observability.js, one per .o11y-frame,
+         keyed by data-dash. Each holds a public dashboard URL (the *_public_url
+         outputs of live/observability) in one place; an empty URL renders a
+         "pending apply" placeholder rather than a dead card. Grafana Cloud can't
+         be iframed, so these link out rather than embed — see the JS. -->
     <section class="card o11y-embed">
-      <div class="o11y-frame"></div>
-      <p class="links">
-        <a id="o11y-live" href="#" target="_blank" rel="noopener">Open the live dashboard →</a>
-      </p>
+      <div class="o11y-frame" data-dash="aurora"></div>
+    </section>
+
+    <section class="card o11y-embed">
+      <div class="o11y-frame" data-dash="slo"></div>
     </section>
 
     <section class="card">

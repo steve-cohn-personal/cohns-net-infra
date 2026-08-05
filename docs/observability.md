@@ -167,24 +167,40 @@ token on top of the two stack tokens; not worth the extra credential for a once-
 
 ### Two phases, because the CloudWatch trust is a handshake
 
-Grafana mints the external id and displays it — with its own AWS account id — on the CloudWatch
-data source's **Settings** tab. The IAM trust policy in `iam.tf` needs both. So the values only
-exist *after* a data source does, and no single apply can close that loop. Rather than pretend
-otherwise, the CloudWatch half is gated behind `enable_cloudwatch`:
+The IAM trust in `iam.tf` must name Grafana's own AWS account id and the external id Grafana uses
+when it assumes the role — and Grafana only reveals those in the UI. They can't be written before
+they're read, so no single apply closes the loop. The CloudWatch half is gated behind
+`enable_cloudwatch`:
 
-**Phase 1** (`enable_cloudwatch = false`) — synthetic checks, the SLO dashboard, the public
-dashboard, SNS alarms, and the cost budget. Everything that needs no handshake.
+**Phase 1** (`enable_cloudwatch = false`) — synthetic checks, the SLO dashboard + its public share,
+SNS alarms, and the cost budget. Everything that needs no handshake.
 
-**Phase 2** (`enable_cloudwatch = true`) — add `grafana_cloud_aws_account_id` and
-`grafana_cloud_external_id` from that Settings tab, then apply again to create the reader role,
-the data source, and the two dashboards that query it (Aurora cost, ALB RED).
+**Phase 2** (`enable_cloudwatch = true`) — the keyless reader role, the CloudWatch data source, the
+Aurora scale-to-zero cost dashboard (+ its public share, linked from the site), and the ALB RED
+dashboard.
 
-Confirm which auth provider your stack offers before phase 2 and set `cloudwatch_auth_type`
-accordingly — `grafana_assume_role` is Grafana Cloud's managed handshake; `arn` is the classic
-assume-role-by-ARN.
+**Getting the two values (Grafana Assume Role).** In the stack UI: **Connections → Add data source
+→ CloudWatch**, set the auth provider to **Grafana Assume Role**. An instructions box then shows
+Grafana's **AWS account id** and your **external id** — copy both; you can cancel without saving.
+The external id is per-Grafana-instance and stable, so the value you read is the one Grafana will
+present when it assumes our role. Put them in `env/<env>.tfvars` as `grafana_cloud_aws_account_id`
+and `grafana_cloud_external_id`, leave `cloudwatch_auth_type = "grafana_assume_role"`, flip
+`enable_cloudwatch = true`, and apply. For `grafana_assume_role` the data source carries only the
+role ARN — Grafana injects its own external id — so `datasources.tf` writes `externalId` into the
+data source **only** for the classic `authType = "arn"` path; the external id always goes into the
+IAM trust regardless.
+
+**ALB RED is gated twice.** It needs the CloudWatch data source *and* a live ALB, so it is
+`enable_cloudwatch && enable_alb_alarms`. With the compute stack torn down there is no ALB, and an
+empty RED board would read as an outage; it re-applies once compute is back and `enable_alb_alarms`
+flips to true. The Aurora board has no such dependency — the `comments-dev` cluster stays up
+(scale-to-zero), so it reads a live, honest `$0` at idle.
 
 Public-dashboard sharing may also need enabling once on the stack (Administration → Public
 dashboards); on current Grafana Cloud it is often on by default.
+
+After the apply, wire `aurora_cost_public_url` into `site/js/observability.js` (the `aurora` entry
+in `DASHBOARDS`) exactly as `slo_public_url` was wired, then deploy the site.
 
 ## What's deliberately not here
 
