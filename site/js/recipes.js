@@ -70,23 +70,78 @@
     }
   }
 
+  // Falls back to the fixed set if /recipes/categories is unreachable (sample mode).
+  var CATEGORY_FALLBACK = ["Breads", "Candy", "Quick Meals", "Appetizers", "Main Courses", "Desserts"];
+  var OTHER = "Other";
+
+  async function getCategories() {
+    try {
+      var c = await getJSON(apiBase() + "/recipes/categories", { mode: "cors" });
+      if (Array.isArray(c) && c.length) return c;
+    } catch (e) { /* fall through to the fixed set */ }
+    return CATEGORY_FALLBACK.slice();
+  }
+
+  function currentFilter() { return new URLSearchParams(location.search).get("category"); }
+  function setFilter(cat) { history.replaceState(null, "", cat ? "?category=" + encodeURIComponent(cat) : location.pathname); }
+
+  function recipeCard(r) {
+    return el("a", { class: "recipe-card", href: "/recipes/recipe.html?slug=" + encodeURIComponent(r.slug) }, [
+      el("h3", {}, [r.title]),
+      el("p", {}, [r.summary || ""]),
+    ]);
+  }
+
+  // Bucket recipes by category in the canonical order; unknown/null land in "Other"
+  // at the end. Empty categories are dropped.
+  function orderedGroups(recipes, categories) {
+    var groups = {};
+    recipes.forEach(function (r) {
+      var key = (r.category && categories.indexOf(r.category) !== -1) ? r.category : OTHER;
+      (groups[key] = groups[key] || []).push(r);
+    });
+    return categories.concat([OTHER])
+      .filter(function (c) { return groups[c]; })
+      .map(function (c) { return { category: c, recipes: groups[c] }; });
+  }
+
   function renderList(root) {
-    listRecipes().then(function (res) {
+    Promise.all([listRecipes(), getCategories()]).then(function (out) {
+      var res = out[0], categories = out[1];
       root.innerHTML = "";
+
       if (!res.data.length) {
         root.appendChild(el("p", { class: "placeholder" }, ["No recipes published yet."]));
         return;
       }
       if (!res.live) root.appendChild(el("p", { class: "demo-note" }, ["Preview content — recipes populate from the API once it's running."]));
-      var grid = el("div", { class: "recipe-grid" });
-      res.data.forEach(function (r) {
-        var card = el("a", { class: "recipe-card", href: "/recipes/recipe.html?slug=" + encodeURIComponent(r.slug) }, [
-          el("h3", {}, [r.title]),
-          el("p", {}, [r.summary || ""]),
-        ]);
-        grid.appendChild(card);
-      });
-      root.appendChild(grid);
+
+      var groups = orderedGroups(res.data, categories);
+      var present = groups.map(function (g) { return g.category; });
+      var active = currentFilter();
+      if (active && present.indexOf(active) === -1) active = null; // stale/empty filter → show all
+
+      // Filter chips: All + each category that actually has recipes.
+      var bar = el("div", { class: "recipe-filters" });
+      function chip(label, value) {
+        var b = el("button", { type: "button", class: "chip" + (active === value ? " is-active" : "") }, [label]);
+        b.addEventListener("click", function () { setFilter(value); renderList(root); });
+        return b;
+      }
+      bar.appendChild(chip("All", null));
+      present.forEach(function (c) { bar.appendChild(chip(c, c)); });
+      root.appendChild(bar);
+
+      // Grouped sections, narrowed to the active chip if one is set.
+      groups
+        .filter(function (g) { return !active || g.category === active; })
+        .forEach(function (g) {
+          var sec = el("section", { class: "recipe-group" }, [el("h2", {}, [g.category])]);
+          var grid = el("div", { class: "recipe-grid" });
+          g.recipes.forEach(function (r) { grid.appendChild(recipeCard(r)); });
+          sec.appendChild(grid);
+          root.appendChild(sec);
+        });
     });
   }
 
@@ -100,6 +155,11 @@
       if (!r) { root.appendChild(el("p", { class: "placeholder" }, ["Recipe not found."])); return; }
 
       document.title = r.title + " — cohns.net";
+      if (r.category) {
+        root.appendChild(el("p", { class: "recipe-category" }, [
+          el("a", { href: "/recipes/?category=" + encodeURIComponent(r.category) }, [r.category]),
+        ]));
+      }
       root.appendChild(el("h1", {}, [r.title]));
       if (r.summary) root.appendChild(el("p", { class: "recipe-summary" }, [r.summary]));
 

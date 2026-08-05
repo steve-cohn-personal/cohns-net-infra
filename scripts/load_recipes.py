@@ -34,7 +34,7 @@ DEFAULT_DATA = REPO_ROOT / "scripts" / "data" / "paella-club-recipes.json"
 
 # Fields the public read path exposes (mirrors RecipePublic) — the sample drops
 # `published`, since only published recipes ever reach the sample.
-PUBLIC_FIELDS = ["slug", "title", "summary", "ingredients", "steps", "hero_image_url", "video_key"]
+PUBLIC_FIELDS = ["slug", "title", "category", "summary", "ingredients", "steps", "hero_image_url", "video_key"]
 
 
 def api_base(env):

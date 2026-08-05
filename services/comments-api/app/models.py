@@ -67,6 +67,8 @@ class Recipe(Base):
 
     slug: Mapped[str] = mapped_column(String(200), unique=True, index=True)
     title: Mapped[str] = mapped_column(String(200))
+    # One of schemas.CATEGORIES, or null for uncategorized. Indexed for ?category= filters.
+    category: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Lists of strings, stored as JSON (JSONB on Postgres, text on SQLite).
