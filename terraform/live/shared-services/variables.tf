@@ -56,10 +56,14 @@ variable "cloudtrail_home_region" {
   default     = "us-west-2"
 }
 
+# auth.js uses redirect_uri = location.origin + "/", so every origin the site is
+# served from must be a registered callback AND logout URL — including the apex,
+# which began serving the site directly on 2026-08-02.
 variable "auth_callback_urls" {
   description = "OAuth callback URLs for the Cognito web client (site origins + local dev)."
   type        = list(string)
   default = [
+    "https://cohns.net/",
     "https://www.cohns.net/",
     "https://steve.cohns.net/",
     "https://dev.cohns.net/",
@@ -69,11 +73,14 @@ variable "auth_callback_urls" {
 }
 
 variable "auth_logout_urls" {
-  description = "Post-logout redirect URLs for the Cognito web client."
+  description = "Post-logout redirect URLs for the Cognito web client (every site origin)."
   type        = list(string)
   default = [
+    "https://cohns.net/",
     "https://www.cohns.net/",
+    "https://steve.cohns.net/",
     "https://dev.cohns.net/",
+    "https://stage.cohns.net/",
     "http://localhost:5173/",
   ]
 }
