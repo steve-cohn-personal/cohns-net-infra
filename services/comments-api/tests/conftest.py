@@ -11,11 +11,19 @@ import pytest  # noqa: E402
 import pytest_asyncio  # noqa: E402
 from httpx import ASGITransport, AsyncClient  # noqa: E402
 
+import uuid  # noqa: E402
+
+from sqlalchemy import insert  # noqa: E402
+
 from app.config import get_settings  # noqa: E402
 from app.db import engine  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models import Base  # noqa: E402
+from app.models import Base, Category  # noqa: E402
 from app.ratelimit import limiter  # noqa: E402
+
+# The seed categories (mirrors migration 0004) — recipe tests reference these by
+# name, and category validation now checks the DB, so seed them each fresh schema.
+SEED_CATEGORIES = ["Breads", "Candy", "Quick Meals", "Appetizers", "Main Courses", "Desserts"]
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -26,6 +34,10 @@ async def _fresh_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
+        await conn.execute(
+            insert(Category),
+            [{"id": uuid.uuid4(), "name": n, "sort_order": i} for i, n in enumerate(SEED_CATEGORIES)],
+        )
     yield
     await engine.dispose()
 

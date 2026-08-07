@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models import CommentStatus
 
@@ -36,19 +36,30 @@ class ModerationAction(BaseModel):
     decision: CommentStatus = Field(description="approved or rejected")
 
 
-# --- Recipes ---------------------------------------------------------------
+# --- Categories ------------------------------------------------------------
 
-# The fixed set of recipe categories, in display order. A recipe's category is
-# optional (null = uncategorized); anything else must be one of these. Kept here so
-# the schema, the /recipes/categories endpoint, and the front-end share one source.
-CATEGORIES: tuple[str, ...] = (
-    "Breads",
-    "Candy",
-    "Quick Meals",
-    "Appetizers",
-    "Main Courses",
-    "Desserts",
-)
+# Categories are data (the `categories` table), managed by moderators. A recipe's
+# category is optional (null) or the name of an existing category — enforced in the
+# router against the DB, not statically here. The six seed names live in migration
+# 0004.
+
+
+class CategoryWrite(BaseModel):
+    """Create/update payload for a category (moderator only)."""
+
+    name: str = Field(min_length=1, max_length=50)
+    sort_order: int = 0
+
+
+class CategoryPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    sort_order: int
+
+
+# --- Recipes ---------------------------------------------------------------
 
 
 class RecipeWrite(BaseModel):
@@ -63,13 +74,6 @@ class RecipeWrite(BaseModel):
     hero_image_url: str | None = Field(default=None, max_length=500)
     video_key: str | None = Field(default=None, max_length=300)
     published: bool = False
-
-    @field_validator("category")
-    @classmethod
-    def _known_category(cls, v: str | None) -> str | None:
-        if v is not None and v not in CATEGORIES:
-            raise ValueError(f"category must be null or one of: {', '.join(CATEGORIES)}")
-        return v
 
 
 class RecipePublic(BaseModel):

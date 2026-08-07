@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, DateTime, Enum, String, Text, func
+from sqlalchemy import JSON, Boolean, DateTime, Enum, Integer, String, Text, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.types import Uuid
 
@@ -67,7 +67,8 @@ class Recipe(Base):
 
     slug: Mapped[str] = mapped_column(String(200), unique=True, index=True)
     title: Mapped[str] = mapped_column(String(200))
-    # One of schemas.CATEGORIES, or null for uncategorized. Indexed for ?category= filters.
+    # The name of a Category (denormalized), or null for uncategorized. Validated
+    # against the categories table at write time. Indexed for ?category= filters.
     category: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
 
@@ -81,6 +82,25 @@ class Recipe(Base):
     video_key: Mapped[str | None] = mapped_column(String(300), nullable=True)
 
     published: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, server_default=func.now(), onupdate=_utcnow
+    )
+
+
+class Category(Base):
+    """The recipe category vocabulary — editable by moderators (add/rename/reorder/
+    delete), so a new category is a data change, not a deploy. `Recipe.category`
+    stores the name; renaming a category cascades to its recipes. `sort_order` drives
+    display order on the site and in the admin list.
+    """
+
+    __tablename__ = "categories"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(50), unique=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, index=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
