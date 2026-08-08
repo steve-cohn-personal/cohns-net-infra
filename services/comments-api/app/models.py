@@ -71,6 +71,9 @@ class Recipe(Base):
     # against the categories table at write time. Indexed for ?category= filters.
     category: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # A longer Markdown "story" (headnote, background, tips). Rendered to sanitized
+    # HTML on the site; links in it (and in summary) are the hook for affiliate links.
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Lists of strings, stored as JSON (JSONB on Postgres, text on SQLite).
     ingredients: Mapped[list] = mapped_column(JSON, default=list)

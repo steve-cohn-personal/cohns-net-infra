@@ -61,6 +61,13 @@ async def test_slug_validation(client):
     assert (await client.post("/recipes", json=bad, headers=auth(MOD()))).status_code == 422
 
 
+async def test_notes_round_trips(client):
+    story = "A **story** with a [link](https://example.com?tag=x&y=1).\n\n- one\n- two"
+    r = await client.post("/recipes", json={**RECIPE, "notes": story}, headers=auth(MOD()))
+    assert r.status_code == 201 and r.json()["notes"] == story  # raw Markdown stored; rendered client-side
+    assert (await client.get("/recipes/pan-con-tomate")).json()["notes"] == story
+
+
 async def test_categories_endpoint(client):
     cats = (await client.get("/recipes/categories")).json()
     assert cats == ["Breads", "Candy", "Quick Meals", "Appetizers", "Main Courses", "Desserts"]

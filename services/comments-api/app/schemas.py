@@ -69,6 +69,7 @@ class RecipeWrite(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     category: str | None = Field(default=None, max_length=50)
     summary: str | None = Field(default=None, max_length=2000)
+    notes: str | None = Field(default=None, max_length=20000)
     ingredients: list[str] = Field(default_factory=list)
     steps: list[str] = Field(default_factory=list)
     hero_image_url: str | None = Field(default=None, max_length=500)
@@ -85,6 +86,7 @@ class RecipePublic(BaseModel):
     title: str
     category: str | None
     summary: str | None
+    notes: str | None
     ingredients: list[str]
     steps: list[str]
     hero_image_url: str | None

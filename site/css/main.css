@@ -242,6 +242,22 @@ footer {
 .recipe-summary { color: var(--muted); font-size: 1.1rem; margin: 0 0 1.5rem; }
 .recipe-detail h2 { margin: 2rem 0 0.75rem; font-size: 1.3rem; }
 
+/* The Markdown "story"/notes block on a recipe. */
+.recipe-notes { color: var(--text); line-height: 1.7; margin: 0 0 2rem; max-width: 44rem; }
+.recipe-notes p { margin: 0 0 1rem; }
+.recipe-notes h3 { font-size: 1.15rem; margin: 1.5rem 0 0.5rem; }
+.recipe-notes h4 { font-size: 1rem; margin: 1.25rem 0 0.4rem; }
+.recipe-notes ul, .recipe-notes ol { padding-left: 1.4rem; margin: 0 0 1rem; }
+.recipe-notes li { margin: 0.3rem 0; }
+.recipe-notes a, .recipe-summary a { color: var(--accent); }
+.recipe-notes code, .recipe-summary code {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
 .recipe-video {
   width: 100%;
   max-width: 48rem;
