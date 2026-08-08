@@ -58,6 +58,17 @@
     return n;
   }
 
+  // Render Markdown (via md.js) into a new element's innerHTML. Falls back to plain
+  // text if md.js didn't load. `block` = true for multi-paragraph content (notes),
+  // false for one-line content (summary).
+  function mdEl(tag, cls, md, block) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (window.cohnsMD) n.innerHTML = (block ? window.cohnsMD.render : window.cohnsMD.renderInline)(md);
+    else n.textContent = md || "";
+    return n;
+  }
+
   function playVideo(video, url) {
     if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = url; // Safari plays HLS natively
@@ -161,7 +172,8 @@
         ]));
       }
       root.appendChild(el("h1", {}, [r.title]));
-      if (r.summary) root.appendChild(el("p", { class: "recipe-summary" }, [r.summary]));
+      if (r.summary) root.appendChild(mdEl("p", "recipe-summary", r.summary, false));
+      if (r.notes) root.appendChild(mdEl("div", "recipe-notes", r.notes, true));
 
       if (r.video_key) {
         var video = el("video", { class: "recipe-video", controls: "", playsinline: "", preload: "metadata" });

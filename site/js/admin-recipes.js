@@ -82,6 +82,7 @@
       title: el("input", { class: "form-input", name: "title", value: recipe.title || "", required: "required" }),
       category: categorySelect(ctx.categories, recipe.category || ""),
       summary: el("textarea", { class: "form-input", name: "summary", rows: "3" }, [recipe.summary || ""]),
+      notes: el("textarea", { class: "form-input", name: "notes", rows: "6" }, [recipe.notes || ""]),
       ingredients: el("textarea", { class: "form-input", name: "ingredients", rows: "8" }, [block(recipe.ingredients)]),
       steps: el("textarea", { class: "form-input", name: "steps", rows: "10" }, [block(recipe.steps)]),
       video_key: el("input", { class: "form-input", name: "video_key", value: recipe.video_key || "" }),
@@ -93,6 +94,7 @@
     form.appendChild(field("Title", f.title));
     form.appendChild(field("Category", f.category));
     form.appendChild(field("Summary", f.summary));
+    form.appendChild(field("Story / notes — Markdown, supports [links](https://…)", f.notes));
     form.appendChild(field("Ingredients (one per line)", f.ingredients));
     form.appendChild(field("Steps (one per line)", f.steps));
     form.appendChild(field("Video key (optional)", f.video_key));
@@ -110,6 +112,7 @@
         title: f.title.value.trim(),
         category: f.category.value || null,
         summary: f.summary.value.trim() || null,
+        notes: f.notes.value.trim() || null,
         ingredients: lines(f.ingredients.value),
         steps: lines(f.steps.value),
         video_key: f.video_key.value.trim() || null,

@@ -54,9 +54,14 @@ variable "cpu_architecture" {
 }
 
 variable "auto_create_tables" {
-  description = "Have the app create tables on boot. True for dev; prod runs Alembic as a migration step instead."
+  # False in deployed environments: Alembic owns the schema (run scripts/db-migrate.sh).
+  # If the app created tables on boot here, its create_all would race a migration —
+  # the booting app makes a new (empty) table before `alembic upgrade` can, and the
+  # migration then fails with DuplicateTableError. Local/tests still create_all via the
+  # app's own config default (this variable only sets the Fargate task's env).
+  description = "Have the app create tables on boot. False in deployed envs — Alembic migrations own the schema."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "db_nullpool" {
