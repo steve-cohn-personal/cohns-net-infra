@@ -61,6 +61,49 @@
     return el("label", { class: "form-row" }, [el("span", {}, [labelText]), control]);
   }
 
+  // Uploads a picked image to S3 via a presigned PUT the API mints, then writes the
+  // resulting public URL into the given hero_image_url <input> and shows a preview.
+  // Returns a form-row: [file picker + status] with a live thumbnail.
+  function imageUploadRow(ctx, urlInput, slugInput) {
+    var file = el("input", { type: "file", class: "form-input", accept: "image/jpeg,image/png,image/webp,image/gif" });
+    var status = el("span", { class: "form-status" });
+    var preview = el("img", { class: "hero-preview", alt: "" });
+    function showPreview() {
+      if (urlInput.value.trim()) { preview.setAttribute("src", urlInput.value.trim()); preview.style.display = ""; }
+      else { preview.removeAttribute("src"); preview.style.display = "none"; }
+    }
+    showPreview();
+    urlInput.addEventListener("input", showPreview);
+
+    file.addEventListener("change", async function () {
+      var f = file.files && file.files[0];
+      if (!f) return;
+      status.textContent = "Uploading…";
+      try {
+        var presign = await authJSON(apiBase() + "/admin/uploads/presign", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kind: "image", content_type: f.type, slug: (slugInput.value || "").trim() || null }),
+        });
+        // Presigned PUT: send the file bytes with exactly the signed Content-Type and
+        // NO auth header (the signature is the authorization).
+        var put = await fetch(presign.url, { method: "PUT", mode: "cors", headers: presign.headers, body: f });
+        if (!put.ok) throw new Error("upload HTTP " + put.status);
+        urlInput.value = presign.public_url;
+        showPreview();
+        status.textContent = "Uploaded.";
+      } catch (err) {
+        status.textContent = "Upload failed: " + err.message;
+      } finally {
+        file.value = "";
+      }
+    });
+
+    return el("div", { class: "form-row" }, [
+      el("span", {}, ["Photo — upload replaces the URL below"]),
+      el("div", { class: "hero-upload" }, [file, status, preview]),
+    ]);
+  }
+
   function categorySelect(categories, selected) {
     var sel = el("select", { class: "form-input", name: "category" });
     sel.appendChild(el("option", { value: "" }, ["— Uncategorized —"]));
@@ -82,6 +125,7 @@
       title: el("input", { class: "form-input", name: "title", value: recipe.title || "", required: "required" }),
       category: categorySelect(ctx.categories, recipe.category || ""),
       summary: el("textarea", { class: "form-input", name: "summary", rows: "3" }, [recipe.summary || ""]),
+      hero_image_url: el("input", { class: "form-input", name: "hero_image_url", value: recipe.hero_image_url || "" }),
       notes: el("textarea", { class: "form-input", name: "notes", rows: "6" }, [recipe.notes || ""]),
       ingredients: el("textarea", { class: "form-input", name: "ingredients", rows: "8" }, [block(recipe.ingredients)]),
       steps: el("textarea", { class: "form-input", name: "steps", rows: "10" }, [block(recipe.steps)]),
@@ -94,6 +138,8 @@
     form.appendChild(field("Title", f.title));
     form.appendChild(field("Category", f.category));
     form.appendChild(field("Summary", f.summary));
+    form.appendChild(imageUploadRow(ctx, f.hero_image_url, f.slug));
+    form.appendChild(field("Photo URL", f.hero_image_url));
     form.appendChild(field("Story / notes — Markdown, supports [links](https://…)", f.notes));
     form.appendChild(field("Ingredients (one per line)", f.ingredients));
     form.appendChild(field("Steps (one per line)", f.steps));
@@ -112,6 +158,7 @@
         title: f.title.value.trim(),
         category: f.category.value || null,
         summary: f.summary.value.trim() || null,
+        hero_image_url: f.hero_image_url.value.trim() || null,
         notes: f.notes.value.trim() || null,
         ingredients: lines(f.ingredients.value),
         steps: lines(f.steps.value),

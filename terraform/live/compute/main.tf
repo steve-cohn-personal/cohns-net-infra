@@ -103,6 +103,10 @@ module "service" {
     COMMENTS_COGNITO_POOL_ID          = data.terraform_remote_state.shared.outputs.cognito_user_pool_id
     COMMENTS_COGNITO_ADMIN_ROLE_ARN   = data.terraform_remote_state.shared.outputs.cognito_user_admin_role_arn
     COMMENTS_ACCESS_REQUEST_TOPIC_ARN = aws_sns_topic.access_requests.arn
+    # Media uploads (prod-only; empty elsewhere → the presign endpoint 503s).
+    COMMENTS_MEDIA_OUTPUT_BUCKET = var.media_output_bucket == null ? "" : var.media_output_bucket
+    COMMENTS_MEDIA_INGEST_BUCKET = var.media_ingest_bucket == null ? "" : var.media_ingest_bucket
+    COMMENTS_MEDIA_CDN_BASE      = var.media_cdn_base == null ? "" : var.media_cdn_base
   }
 
   # Only ARNs known at plan time may go here — the module keys an attachment
@@ -159,6 +163,44 @@ resource "aws_iam_policy" "task_admin" {
 resource "aws_iam_role_policy_attachment" "task_admin" {
   role       = module.service.task_role_name
   policy_arn = aws_iam_policy.task_admin.arn
+}
+
+# Lets the task write recipe media to the media buckets via presigned PUT. Scoped
+# to the two upload prefixes only, and created only where uploads are configured
+# (prod) — media is in this account, so no assume-role is needed. The ingest grant
+# is included now so the video-upload path (lessons/) works without another apply.
+data "aws_iam_policy_document" "media_uploads" {
+  count = var.media_output_bucket == null ? 0 : 1
+
+  statement {
+    sid       = "PutRecipeImages"
+    effect    = "Allow"
+    actions   = ["s3:PutObject"]
+    resources = ["arn:aws:s3:::${var.media_output_bucket}/images/*"]
+  }
+
+  dynamic "statement" {
+    for_each = var.media_ingest_bucket == null ? [] : [var.media_ingest_bucket]
+    content {
+      sid       = "PutLessonSources"
+      effect    = "Allow"
+      actions   = ["s3:PutObject"]
+      resources = ["arn:aws:s3:::${statement.value}/lessons/*"]
+    }
+  }
+}
+
+resource "aws_iam_policy" "media_uploads" {
+  count  = var.media_output_bucket == null ? 0 : 1
+  name   = "comments-${var.environment}-media-uploads"
+  policy = data.aws_iam_policy_document.media_uploads[0].json
+  tags   = local.tags
+}
+
+resource "aws_iam_role_policy_attachment" "media_uploads" {
+  count      = var.media_output_bucket == null ? 0 : 1
+  role       = module.service.task_role_name
+  policy_arn = aws_iam_policy.media_uploads[0].arn
 }
 
 resource "aws_route53_record" "api" {

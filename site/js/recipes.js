@@ -97,10 +97,13 @@
   function setFilter(cat) { history.replaceState(null, "", cat ? "?category=" + encodeURIComponent(cat) : location.pathname); }
 
   function recipeCard(r) {
-    return el("a", { class: "recipe-card", href: "/recipes/recipe.html?slug=" + encodeURIComponent(r.slug) }, [
-      el("h3", {}, [r.title]),
-      el("p", {}, [r.summary || ""]),
-    ]);
+    var kids = [];
+    if (r.hero_image_url) {
+      kids.push(el("img", { class: "recipe-card-thumb", src: r.hero_image_url, alt: "", loading: "lazy" }));
+    }
+    kids.push(el("h3", {}, [r.title]));
+    kids.push(el("p", {}, [r.summary || ""]));
+    return el("a", { class: "recipe-card" + (r.hero_image_url ? " has-thumb" : ""), href: "/recipes/recipe.html?slug=" + encodeURIComponent(r.slug) }, kids);
   }
 
   // Bucket recipes by category in the canonical order; unknown/null land in "Other"
@@ -172,6 +175,11 @@
         ]));
       }
       root.appendChild(el("h1", {}, [r.title]));
+      if (r.hero_image_url) {
+        root.appendChild(el("img", {
+          class: "recipe-hero", src: r.hero_image_url, alt: r.title, loading: "lazy",
+        }));
+      }
       if (r.summary) root.appendChild(mdEl("p", "recipe-summary", r.summary, false));
       if (r.notes) root.appendChild(mdEl("div", "recipe-notes", r.notes, true));
 

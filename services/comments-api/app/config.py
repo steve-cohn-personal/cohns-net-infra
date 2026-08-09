@@ -57,6 +57,16 @@ class Settings(BaseSettings):
     # but no notification is sent.
     access_request_topic_arn: str | None = None
 
+    # Media uploads. Moderators upload recipe images (and, later, lesson videos)
+    # straight to S3 via a presigned PUT the API mints. The buckets belong to the
+    # prod-only media stack and are in this account, so the task role's own creds
+    # sign the URL (no assume-role). All None locally/in tests and in dev (no dev
+    # media stack) → the presign endpoint 503s. media_cdn_base is the public origin
+    # the output bucket is served from (https://media.cohns.net).
+    media_output_bucket: str | None = None
+    media_ingest_bucket: str | None = None
+    media_cdn_base: str | None = None
+
     # Rate limit for posting, in slowapi syntax. Applied per client IP.
     rate_limit_post: str = "5/minute"
 

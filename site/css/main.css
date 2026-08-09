@@ -200,6 +200,26 @@ footer {
 .recipe-card h3 { margin: 0 0 0.4rem; font-size: 1.15rem; }
 .recipe-card p { margin: 0; color: var(--muted); font-size: 0.95rem; }
 
+/* Cards with a photo: image spans the top edge-to-edge, text keeps its padding. */
+.recipe-card.has-thumb { padding: 0; overflow: hidden; }
+.recipe-card-thumb { display: block; width: 100%; height: 10rem; object-fit: cover; }
+.recipe-card.has-thumb h3 { margin: 1rem 1.4rem 0.4rem; }
+.recipe-card.has-thumb p { margin: 0 1.4rem 1.25rem; }
+
+/* Hero image on the recipe detail page. */
+.recipe-hero {
+  display: block;
+  width: 100%;
+  max-height: 26rem;
+  object-fit: cover;
+  border-radius: 12px;
+  margin: 0 0 1.5rem;
+}
+
+/* Admin editor: image-upload control + live preview thumbnail. */
+.hero-upload { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+.hero-preview { max-width: 12rem; max-height: 8rem; border-radius: 8px; border: 1px solid var(--border); }
+
 /* Category filter chips + grouped sections on the recipe list. */
 .recipe-filters { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1.5rem 0 0.5rem; }
 .chip {

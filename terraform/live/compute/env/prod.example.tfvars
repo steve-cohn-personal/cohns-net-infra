@@ -15,3 +15,10 @@ domain_name    = "api.cohns.net"
 container_image = "<ecr-repo-url>/cohns/comments-api:latest"
 
 db_nullpool = true
+
+# Media uploads (prod only — the media stack is in this account). Enables the
+# presigned-PUT endpoint and the scoped s3:PutObject task-role grant. Bucket names
+# are cohns-media-{output,ingest}-<prod-account-id>. Leave unset in dev/stage.
+media_output_bucket = "cohns-media-output-<prod-account-id>"
+media_ingest_bucket = "cohns-media-ingest-<prod-account-id>"
+media_cdn_base      = "https://media.cohns.net"

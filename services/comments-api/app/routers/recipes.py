@@ -6,9 +6,11 @@ from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import recipe_import
+from app import media_uploads, recipe_import
 from app.auth import require_moderator
+from app.config import Settings, get_settings
 from app.db import get_session
+from app.media_uploads import UploadError
 from app.models import Category, Recipe
 from app.recipe_import import RecipeImportError
 from app.schemas import (
@@ -18,6 +20,8 @@ from app.schemas import (
     RecipeImportRequest,
     RecipePublic,
     RecipeWrite,
+    UploadPresignRequest,
+    UploadPresignResponse,
 )
 
 router = APIRouter(tags=["recipes"])
@@ -70,6 +74,27 @@ async def import_recipe(payload: RecipeImportRequest):
         return await run_in_threadpool(recipe_import.import_from_url, payload.url)
     except RecipeImportError as e:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e)) from None
+
+
+@router.post(
+    "/admin/uploads/presign",
+    response_model=UploadPresignResponse,
+    dependencies=[Depends(require_moderator)],
+)
+async def presign_upload(payload: UploadPresignRequest, settings: Settings = Depends(get_settings)):
+    """Mint a short-lived presigned S3 PUT so a moderator can upload recipe media
+    straight from the browser. 400 on a bad kind/content-type; 503 where uploads
+    aren't configured (local, tests, dev — there is no dev media stack). Blocking
+    boto3 call runs in a threadpool."""
+    try:
+        result = await run_in_threadpool(
+            media_uploads.presign_put, payload.kind, payload.content_type, payload.slug, settings
+        )
+    except UploadError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e)) from None
+    if result is None:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "media uploads are not configured")
+    return result
 
 
 @router.post(

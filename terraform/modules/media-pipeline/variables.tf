@@ -10,6 +10,12 @@ variable "cors_origins" {
   default     = ["https://www.cohns.net", "https://steve.cohns.net"]
 }
 
+variable "upload_origins" {
+  description = "Site origins allowed to PUT directly to the buckets via a presigned URL (the admin pages). Empty disables browser-upload CORS."
+  type        = list(string)
+  default     = ["https://cohns.net", "https://www.cohns.net", "https://steve.cohns.net"]
+}
+
 variable "domain_name" {
   description = "Custom domain for the media CDN (e.g. media.cohns.net). Null keeps the default *.cloudfront.net domain."
   type        = string
