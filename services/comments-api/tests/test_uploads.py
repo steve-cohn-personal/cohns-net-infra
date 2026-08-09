@@ -26,9 +26,24 @@ def test_build_key_rejects_bad_content_type():
         build_key("image", "application/pdf", "x")
 
 
-def test_build_key_rejects_video_until_wired():
+def test_build_key_video_is_deterministic_on_slug():
+    # No random suffix: the key must match recipe.video_key so a re-upload replaces.
+    assert build_key("video", "video/mp4", "Pan con Tomate") == "lessons/pan-con-tomate.mp4"
+
+
+def test_build_key_video_requires_slug():
     with pytest.raises(UploadError):
-        build_key("video", "video/mp4", "x")
+        build_key("video", "video/mp4", None)
+
+
+def test_build_key_rejects_bad_video_content_type():
+    with pytest.raises(UploadError):
+        build_key("video", "video/x-msvideo", "x")
+
+
+def test_build_key_rejects_unknown_kind():
+    with pytest.raises(UploadError):
+        build_key("audio", "audio/mpeg", "x")
 
 
 # --- presign_put (stubbed boto3) --------------------------------------------
@@ -37,7 +52,7 @@ def test_build_key_rejects_video_until_wired():
 class _StubSettings:
     aws_region = "us-west-2"
     media_output_bucket = "cohns-media-output-x"
-    media_ingest_bucket = None
+    media_ingest_bucket = "cohns-media-ingest-x"
     media_cdn_base = "https://media.cohns.net/"
 
 
@@ -67,9 +82,28 @@ def test_presign_configured(monkeypatch):
     assert out["headers"] == {"Content-Type": "image/webp"}
     # public_url uses the CDN origin (no double slash from the trailing-slash base).
     assert out["public_url"] == "https://media.cohns.net/" + out["key"]
+    assert out["video_key"] is None
     # the object key and content-type are signed into the URL.
     assert captured["op"] == "put_object" and captured["ContentType"] == "image/webp"
     assert captured["Bucket"] == "cohns-media-output-x" and captured["Key"] == out["key"]
+
+
+def test_presign_video_targets_ingest_and_returns_video_key(monkeypatch):
+    captured = {}
+
+    class _Client:
+        def generate_presigned_url(self, op, Params, ExpiresIn):
+            captured.update(**Params)
+            return "https://s3.example/put?sig=2"
+
+    monkeypatch.setattr("boto3.client", lambda *a, **k: _Client())
+    out = media_uploads.presign_put("video", "video/mp4", "pan-con-tomate", _StubSettings())
+
+    assert captured["Bucket"] == "cohns-media-ingest-x"  # source goes to ingest
+    assert out["key"] == "lessons/pan-con-tomate.mp4"
+    # recipe.video_key is the key without extension (the transcode output prefix).
+    assert out["video_key"] == "lessons/pan-con-tomate"
+    assert out["public_url"] is None
 
 
 # --- endpoint ---------------------------------------------------------------

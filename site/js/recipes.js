@@ -69,11 +69,18 @@
     return n;
   }
 
-  function playVideo(video, url) {
+  // onUnavailable() is called when the HLS manifest can't be loaded — most often
+  // because a freshly uploaded lesson is still transcoding (the manifest 403s until
+  // the pipeline finishes), so the caller can show a "processing" note.
+  function playVideo(video, url, onUnavailable) {
     if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = url; // Safari plays HLS natively
+      video.addEventListener("error", function () { if (onUnavailable) onUnavailable(); });
     } else if (window.Hls && window.Hls.isSupported()) {
       var hls = new window.Hls();
+      hls.on(window.Hls.Events.ERROR, function (_e, data) {
+        if (data && data.fatal) { hls.destroy(); if (onUnavailable) onUnavailable(); }
+      });
       hls.loadSource(url);
       hls.attachMedia(video);
     } else {
@@ -184,9 +191,16 @@
       if (r.notes) root.appendChild(mdEl("div", "recipe-notes", r.notes, true));
 
       if (r.video_key) {
+        var videoWrap = el("div", { class: "recipe-video-wrap" });
         var video = el("video", { class: "recipe-video", controls: "", playsinline: "", preload: "metadata" });
-        root.appendChild(video);
-        playVideo(video, hlsUrl(r.video_key));
+        videoWrap.appendChild(video);
+        root.appendChild(videoWrap);
+        playVideo(video, hlsUrl(r.video_key), function () {
+          videoWrap.innerHTML = "";
+          videoWrap.appendChild(el("p", { class: "recipe-video-pending" }, [
+            "This lesson video is still processing — check back in a few minutes.",
+          ]));
+        });
       }
 
       if ((r.ingredients || []).length) {

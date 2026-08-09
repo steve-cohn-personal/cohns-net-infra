@@ -104,6 +104,42 @@
     ]);
   }
 
+  // Uploads a lesson video's source to the ingest bucket via a presigned PUT; the
+  // media pipeline transcodes it to HLS. The object (and thus the video key) is named
+  // after the recipe slug, so a re-upload replaces the lesson. Writes the returned
+  // video_key into the given <input>.
+  function videoUploadRow(ctx, videoKeyInput, slugInput) {
+    var file = el("input", { type: "file", class: "form-input", accept: "video/mp4,video/quicktime,video/webm" });
+    var status = el("span", { class: "form-status" });
+
+    file.addEventListener("change", async function () {
+      var f = file.files && file.files[0];
+      if (!f) return;
+      var slug = (slugInput.value || "").trim();
+      if (!slug) { status.textContent = "Enter a slug first — the video is named after it."; file.value = ""; return; }
+      status.textContent = "Uploading… (large files take a moment)";
+      try {
+        var presign = await authJSON(apiBase() + "/admin/uploads/presign", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kind: "video", content_type: f.type, slug: slug }),
+        });
+        var put = await fetch(presign.url, { method: "PUT", mode: "cors", headers: presign.headers, body: f });
+        if (!put.ok) throw new Error("upload HTTP " + put.status);
+        videoKeyInput.value = presign.video_key;
+        status.textContent = "Uploaded — transcoding now; the video appears on the recipe in a few minutes.";
+      } catch (err) {
+        status.textContent = "Upload failed: " + err.message;
+      } finally {
+        file.value = "";
+      }
+    });
+
+    return el("div", { class: "form-row" }, [
+      el("span", {}, ["Lesson video — upload sets the key below"]),
+      el("div", { class: "hero-upload" }, [file, status]),
+    ]);
+  }
+
   function categorySelect(categories, selected) {
     var sel = el("select", { class: "form-input", name: "category" });
     sel.appendChild(el("option", { value: "" }, ["— Uncategorized —"]));
@@ -143,6 +179,7 @@
     form.appendChild(field("Story / notes — Markdown, supports [links](https://…)", f.notes));
     form.appendChild(field("Ingredients (one per line)", f.ingredients));
     form.appendChild(field("Steps (one per line)", f.steps));
+    form.appendChild(videoUploadRow(ctx, f.video_key, f.slug));
     form.appendChild(field("Video key (optional)", f.video_key));
     form.appendChild(el("label", { class: "form-check" }, [f.published, el("span", {}, ["Published"])]));
 

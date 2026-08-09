@@ -118,12 +118,14 @@ class UploadPresignRequest(BaseModel):
 
 
 class UploadPresignResponse(BaseModel):
-    """A short-lived presigned PUT plus the public URL the object will have."""
+    """A short-lived presigned PUT plus what to store on the recipe once uploaded:
+    public_url (image → hero_image_url) or video_key (video → video_key)."""
 
     url: str
     key: str
     headers: dict[str, str]
-    public_url: str
+    public_url: str | None = None
+    video_key: str | None = None
 
 
 # --- User administration ----------------------------------------------------
