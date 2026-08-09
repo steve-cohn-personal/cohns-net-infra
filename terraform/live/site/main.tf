@@ -56,7 +56,10 @@ locals {
     "img-src 'self' data: https://media.cohns.net https://cohns-family-810100780414.s3.us-west-2.amazonaws.com",
     "style-src 'self'",
     "script-src 'self'",
-    "connect-src 'self' ${local.api_origin} https://media.cohns.net https://cohns-net-auth.auth.us-west-2.amazoncognito.com https://soweh7qos7.execute-api.us-west-2.amazonaws.com",
+    # The media bucket S3 endpoints are here (not just media.cohns.net) because
+    # moderators upload recipe images/videos via a presigned PUT straight to the
+    # bucket's regional endpoint — a fetch(), so connect-src governs it.
+    "connect-src 'self' ${local.api_origin} https://media.cohns.net https://cohns-media-output-810100780414.s3.us-west-2.amazonaws.com https://cohns-media-ingest-810100780414.s3.us-west-2.amazonaws.com https://cohns-net-auth.auth.us-west-2.amazoncognito.com https://soweh7qos7.execute-api.us-west-2.amazonaws.com",
     "media-src 'self' blob: https://media.cohns.net",
     # No frame-src: the /observability page links out to the Grafana Cloud public
     # dashboard rather than embedding it (Grafana Cloud sends X-Frame-Options:

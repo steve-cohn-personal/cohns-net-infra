@@ -31,6 +31,21 @@ resource "aws_s3_bucket_public_access_block" "ingest" {
   restrict_public_buckets = true
 }
 
+# Moderators upload lesson-video sources here straight from the browser via a
+# presigned PUT, so the bucket must allow that cross-origin write from the site.
+resource "aws_s3_bucket_cors_configuration" "ingest" {
+  count  = length(var.upload_origins) > 0 ? 1 : 0
+  bucket = aws_s3_bucket.ingest.id
+
+  cors_rule {
+    allowed_methods = ["PUT"]
+    allowed_origins = var.upload_origins
+    allowed_headers = ["*"] # Content-Type is signed into the presigned PUT.
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3000
+  }
+}
+
 # Raw uploads are large and only needed until transcoded — expire them.
 resource "aws_s3_bucket_lifecycle_configuration" "ingest" {
   bucket = aws_s3_bucket.ingest.id
@@ -54,6 +69,21 @@ resource "aws_s3_bucket_public_access_block" "output" {
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
+}
+
+# Recipe images are uploaded straight to the output bucket (served immediately via
+# the CDN, no transcode), so it too must allow the presigned browser PUT.
+resource "aws_s3_bucket_cors_configuration" "output" {
+  count  = length(var.upload_origins) > 0 ? 1 : 0
+  bucket = aws_s3_bucket.output.id
+
+  cors_rule {
+    allowed_methods = ["PUT"]
+    allowed_origins = var.upload_origins
+    allowed_headers = ["*"]
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3000
+  }
 }
 
 # --- MediaConvert role (reads ingest, writes output) ------------------------

@@ -108,6 +108,24 @@ class RecipeImportRequest(BaseModel):
     url: str = Field(min_length=1, max_length=2000)
 
 
+class UploadPresignRequest(BaseModel):
+    """Ask for a presigned S3 PUT to upload recipe media (moderator only)."""
+
+    kind: str = Field(default="image", pattern="^(image|video)$")
+    content_type: str = Field(min_length=3, max_length=100)
+    # Optional, only to make the object key human-readable (e.g. the recipe slug).
+    slug: str | None = Field(default=None, max_length=200)
+
+
+class UploadPresignResponse(BaseModel):
+    """A short-lived presigned PUT plus the public URL the object will have."""
+
+    url: str
+    key: str
+    headers: dict[str, str]
+    public_url: str
+
+
 # --- User administration ----------------------------------------------------
 
 

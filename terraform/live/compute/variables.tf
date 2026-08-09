@@ -82,6 +82,29 @@ variable "cors_origins" {
   default     = null
 }
 
+# Media uploads: the task mints presigned PUTs to these buckets so moderators can
+# upload recipe images (output bucket, images/) and lesson videos (ingest bucket,
+# lessons/) from the browser. The media stack is prod-only and in this account, so
+# set these only in prod; left null everywhere else, the presign endpoint 503s and
+# no S3 grant is created.
+variable "media_output_bucket" {
+  description = "Media output bucket (recipe images + transcoded HLS). Null = uploads disabled here."
+  type        = string
+  default     = null
+}
+
+variable "media_ingest_bucket" {
+  description = "Media ingest bucket (raw lesson-video sources). Null = video uploads disabled here."
+  type        = string
+  default     = null
+}
+
+variable "media_cdn_base" {
+  description = "Public origin the output bucket is served from, e.g. https://media.cohns.net. Null = uploads disabled here."
+  type        = string
+  default     = null
+}
+
 variable "github_org" {
   description = "GitHub org, for the Repo tag."
   type        = string
