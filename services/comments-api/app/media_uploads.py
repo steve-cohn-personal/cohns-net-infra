@@ -16,7 +16,7 @@ Two upload kinds:
 
 import secrets
 
-# content-type -> file extension, per upload kind. This is also the allowlist:
+# content-type -> file extension, per upload kind. These are also the allowlists:
 # a content-type not present here is rejected.
 IMAGE_TYPES = {
     "image/jpeg": "jpg",
@@ -24,9 +24,11 @@ IMAGE_TYPES = {
     "image/webp": "webp",
     "image/gif": "gif",
 }
-
-# Prefix within the target bucket, per kind.
-_PREFIX = {"image": "images", "video": "lessons"}
+VIDEO_TYPES = {
+    "video/mp4": "mp4",
+    "video/quicktime": "mov",
+    "video/webm": "webm",
+}
 
 _PRESIGN_TTL = 300  # seconds the PUT URL stays valid
 
@@ -42,16 +44,27 @@ def _slugify(s: str) -> str:
 
 
 def build_key(kind: str, content_type: str, slug: str | None) -> str:
-    """Deterministic, collision-resistant object key for an upload. Validates the
-    kind and content-type; raises UploadError otherwise."""
-    if kind != "image":
-        # video is added when the ingest bucket is wired; keep the surface honest.
-        raise UploadError(f"unsupported upload kind: {kind!r}")
-    ext = IMAGE_TYPES.get(content_type)
-    if not ext:
-        raise UploadError(f"unsupported content type: {content_type!r}")
-    stem = _slugify(slug) or "img"
-    return f"{_PREFIX[kind]}/{stem}-{secrets.token_hex(4)}.{ext}"
+    """The S3 object key for an upload. Validates kind + content-type (→ UploadError).
+
+    Images get a random suffix (images/<slug>-<rand>.<ext>) — many per recipe, never
+    colliding. A video's key is deterministic on the slug (lessons/<slug>.<ext>): the
+    transcode pipeline strips the extension to form the output prefix, which becomes
+    recipe.video_key, so re-uploading a lesson replaces it in place."""
+    if kind == "image":
+        ext = IMAGE_TYPES.get(content_type)
+        if not ext:
+            raise UploadError(f"unsupported image content type: {content_type!r}")
+        stem = _slugify(slug) or "img"
+        return f"images/{stem}-{secrets.token_hex(4)}.{ext}"
+    if kind == "video":
+        ext = VIDEO_TYPES.get(content_type)
+        if not ext:
+            raise UploadError(f"unsupported video content type: {content_type!r}")
+        stem = _slugify(slug)
+        if not stem:
+            raise UploadError("a recipe slug is required to name a video upload")
+        return f"lessons/{stem}.{ext}"
+    raise UploadError(f"unsupported upload kind: {kind!r}")
 
 
 def _bucket_for(kind: str, settings) -> str | None:
@@ -76,10 +89,19 @@ def presign_put(kind: str, content_type: str, slug: str | None, settings) -> dic
         Params={"Bucket": bucket, "Key": key, "ContentType": content_type},
         ExpiresIn=_PRESIGN_TTL,
     )
-    return {
+    result = {
         "url": url,
         "key": key,
         # Content-Type is a signed header, so the browser must send exactly this.
         "headers": {"Content-Type": content_type},
-        "public_url": f"{settings.media_cdn_base.rstrip('/')}/{key}",
+        "public_url": None,
+        "video_key": None,
     }
+    if kind == "image":
+        # Ready immediately; the CDN serves it. Goes into recipe.hero_image_url.
+        result["public_url"] = f"{settings.media_cdn_base.rstrip('/')}/{key}"
+    else:
+        # The pipeline transcodes the source into <base>/, so recipe.video_key is the
+        # key without its extension. The HLS manifest appears there minutes later.
+        result["video_key"] = key.rsplit(".", 1)[0]
+    return result
