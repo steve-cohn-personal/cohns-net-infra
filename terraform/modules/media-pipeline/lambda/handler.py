@@ -60,7 +60,10 @@ def _job_settings(input_uri, base):
             {
                 "FileInput": input_uri,
                 "AudioSelectors": {"Audio Selector 1": {"DefaultSelection": "DEFAULT"}},
-                "VideoSelector": {},
+                # AUTO honors the source's rotation metadata, so portrait phone videos
+                # (shot landscape-on-sensor with a rotate flag) stay upright instead of
+                # coming out sideways. No-op for videos without a rotation flag.
+                "VideoSelector": {"Rotate": "AUTO"},
                 "TimecodeSource": "ZEROBASED",
             }
         ],
