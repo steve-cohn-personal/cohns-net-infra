@@ -100,6 +100,24 @@
     return CATEGORY_FALLBACK.slice();
   }
 
+  async function getCuisines() {
+    try {
+      var c = await getJSON(apiBase() + "/recipes/cuisines", { mode: "cors" });
+      if (Array.isArray(c)) return c;
+    } catch (e) { /* sample mode — derive from the recipes themselves below */ }
+    return null;
+  }
+
+  var DIFFICULTIES = ["Easy", "Medium", "Hard"];
+
+  // Does a recipe match the free-text query across its searchable fields?
+  function matchesQuery(r, q) {
+    if (!q) return true;
+    var hay = [r.title, r.summary, r.notes, (r.ingredients || []).join(" "), (r.steps || []).join(" ")]
+      .join(" ").toLowerCase();
+    return hay.indexOf(q) !== -1;
+  }
+
   function currentFilter() { return new URLSearchParams(location.search).get("category"); }
   function setFilter(cat) { history.replaceState(null, "", cat ? "?category=" + encodeURIComponent(cat) : location.pathname); }
 
@@ -127,8 +145,15 @@
   }
 
   function renderList(root) {
-    Promise.all([listRecipes(), getCategories()]).then(function (out) {
+    Promise.all([listRecipes(), getCategories(), getCuisines()]).then(function (out) {
       var res = out[0], categories = out[1];
+      // Cuisines: the API list if reachable, else derive from the recipes on hand.
+      var cuisines = out[2];
+      if (!cuisines) {
+        var seen = {};
+        res.data.forEach(function (r) { if (r.cuisine) seen[r.cuisine] = true; });
+        cuisines = Object.keys(seen).sort();
+      }
       root.innerHTML = "";
 
       if (!res.data.length) {
@@ -137,32 +162,97 @@
       }
       if (!res.live) root.appendChild(el("p", { class: "demo-note" }, ["Preview content — recipes populate from the API once it's running."]));
 
-      var groups = orderedGroups(res.data, categories);
-      var present = groups.map(function (g) { return g.category; });
-      var active = currentFilter();
-      if (active && present.indexOf(active) === -1) active = null; // stale/empty filter → show all
+      // Filter state, seeded from the URL so cuisine meta-links and shared searches work.
+      var params = new URLSearchParams(location.search);
+      var state = {
+        q: (params.get("q") || "").toLowerCase(),
+        category: params.get("category"),
+        cuisine: params.get("cuisine") || "",
+        difficulty: params.get("difficulty") || "",
+      };
 
-      // Filter chips: All + each category that actually has recipes.
-      var bar = el("div", { class: "recipe-filters" });
-      function chip(label, value) {
-        var b = el("button", { type: "button", class: "chip" + (active === value ? " is-active" : "") }, [label]);
-        b.addEventListener("click", function () { setFilter(value); renderList(root); });
-        return b;
+      // --- controls: search box, category chips, cuisine + difficulty selects ---
+      var search = el("input", { class: "form-input recipe-search", type: "search", placeholder: "Search recipes…", value: params.get("q") || "" });
+      search.addEventListener("input", function () { state.q = search.value.trim().toLowerCase(); paint(); });
+
+      var chipBar = el("div", { class: "recipe-filters" });
+      var results = el("div", { class: "recipe-results" });
+
+      function selectFacet(placeholder, options, key) {
+        var sel = el("select", { class: "form-input recipe-facet" });
+        sel.appendChild(el("option", { value: "" }, [placeholder]));
+        options.forEach(function (o) { sel.appendChild(el("option", { value: o }, [o])); });
+        sel.value = state[key] || "";
+        sel.addEventListener("change", function () { state[key] = sel.value; paint(); });
+        return sel;
       }
-      bar.appendChild(chip("All", null));
-      present.forEach(function (c) { bar.appendChild(chip(c, c)); });
-      root.appendChild(bar);
+      var facetBar = el("div", { class: "recipe-facets" }, [
+        selectFacet("Any cuisine", cuisines, "cuisine"),
+        selectFacet("Any difficulty", DIFFICULTIES, "difficulty"),
+      ]);
 
-      // Grouped sections, narrowed to the active chip if one is set.
-      groups
-        .filter(function (g) { return !active || g.category === active; })
-        .forEach(function (g) {
-          var sec = el("section", { class: "recipe-group" }, [el("h2", {}, [g.category])]);
-          var grid = el("div", { class: "recipe-grid" });
-          g.recipes.forEach(function (r) { grid.appendChild(recipeCard(r)); });
-          sec.appendChild(grid);
-          root.appendChild(sec);
+      root.appendChild(el("div", { class: "recipe-controls" }, [search, facetBar]));
+      root.appendChild(chipBar);
+      root.appendChild(results);
+
+      function apply() {
+        return res.data.filter(function (r) {
+          return matchesQuery(r, state.q)
+            && (!state.category || r.category === state.category)
+            && (!state.cuisine || r.cuisine === state.cuisine)
+            && (!state.difficulty || r.difficulty === state.difficulty);
         });
+      }
+
+      function paint() {
+        // Category chips reflect what's present after the *other* filters are applied.
+        var forChips = res.data.filter(function (r) {
+          return matchesQuery(r, state.q)
+            && (!state.cuisine || r.cuisine === state.cuisine)
+            && (!state.difficulty || r.difficulty === state.difficulty);
+        });
+        var present = orderedGroups(forChips, categories).map(function (g) { return g.category; });
+        if (state.category && present.indexOf(state.category) === -1) state.category = null;
+
+        chipBar.innerHTML = "";
+        function chip(label, value) {
+          var b = el("button", { type: "button", class: "chip" + (state.category === value ? " is-active" : "") }, [label]);
+          b.addEventListener("click", function () { state.category = value; setFilter(value); paint(); });
+          return b;
+        }
+        chipBar.appendChild(chip("All", null));
+        present.forEach(function (c) { if (c !== OTHER) chipBar.appendChild(chip(c, c)); });
+
+        results.innerHTML = "";
+        var filtered = apply();
+        var searching = state.q || state.cuisine || state.difficulty;
+
+        if (!filtered.length) {
+          results.appendChild(el("p", { class: "placeholder" }, ["No recipes match your search."]));
+          return;
+        }
+        if (searching) {
+          // Flat result grid when any search/facet is active.
+          results.appendChild(el("p", { class: "recipe-result-count" },
+            [filtered.length + (filtered.length === 1 ? " recipe" : " recipes")]));
+          var grid = el("div", { class: "recipe-grid" });
+          filtered.forEach(function (r) { grid.appendChild(recipeCard(r)); });
+          results.appendChild(grid);
+        } else {
+          // Default: grouped by category (narrowed to the active category chip if set).
+          orderedGroups(filtered, categories)
+            .filter(function (g) { return !state.category || g.category === state.category; })
+            .forEach(function (g) {
+              var sec = el("section", { class: "recipe-group" }, [el("h2", {}, [g.category])]);
+              var grid = el("div", { class: "recipe-grid" });
+              g.recipes.forEach(function (r) { grid.appendChild(recipeCard(r)); });
+              sec.appendChild(grid);
+              results.appendChild(sec);
+            });
+        }
+      }
+
+      paint();
     });
   }
 
@@ -182,6 +272,12 @@
         ]));
       }
       root.appendChild(el("h1", {}, [r.title]));
+      // Cuisine + difficulty meta (each links back to a filtered list; difficulty is
+      // just a tag). Rendered only when present.
+      var meta = [];
+      if (r.cuisine) meta.push(el("a", { class: "recipe-tag", href: "/recipes/?cuisine=" + encodeURIComponent(r.cuisine) }, [r.cuisine]));
+      if (r.difficulty) meta.push(el("span", { class: "recipe-tag recipe-tag--plain" }, [r.difficulty]));
+      if (meta.length) root.appendChild(el("p", { class: "recipe-meta" }, meta));
       if (r.hero_image_url) {
         root.appendChild(el("img", {
           class: "recipe-hero", src: r.hero_image_url, alt: r.title, loading: "lazy",

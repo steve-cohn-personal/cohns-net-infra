@@ -70,6 +70,11 @@ class Recipe(Base):
     # The name of a Category (denormalized), or null for uncategorized. Validated
     # against the categories table at write time. Indexed for ?category= filters.
     category: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
+    # The name of a Cuisine (denormalized), validated against the cuisines table at
+    # write time — a moderator-maintained vocabulary like category. Indexed for filters.
+    cuisine: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
+    # A hard-coded difficulty (Easy/Medium/Hard); validated in the schema, no table.
+    difficulty: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     # A longer Markdown "story" (headnote, background, tips). Rendered to sanitized
     # HTML on the site; links in it (and in summary) are the hook for affiliate links.
@@ -100,6 +105,25 @@ class Category(Base):
     """
 
     __tablename__ = "categories"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(50), unique=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, index=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, server_default=func.now(), onupdate=_utcnow
+    )
+
+
+class Cuisine(Base):
+    """The recipe cuisine vocabulary — a moderator-maintained list exactly like
+    Category (add/rename/reorder/delete). `Recipe.cuisine` stores the name; renaming
+    cascades to its recipes. Kept separate from Category so a recipe can be both e.g.
+    "Main Courses" (category) and "Spanish" (cuisine).
+    """
+
+    __tablename__ = "cuisines"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(50), unique=True)

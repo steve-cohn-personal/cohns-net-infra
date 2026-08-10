@@ -52,6 +52,14 @@
     return CATEGORY_FALLBACK.slice();
   }
 
+  async function getCuisines() {
+    try {
+      var c = await authJSON(apiBase() + "/recipes/cuisines");
+      if (Array.isArray(c)) return c;
+    } catch (e) { /* fall through */ }
+    return [];
+  }
+
   var lines = function (s) { return (s || "").split("\n").map(function (x) { return x.trim(); }).filter(Boolean); };
   var block = function (a) { return (a || []).join("\n"); };
 
@@ -170,14 +178,16 @@
     ]);
   }
 
-  function categorySelect(categories, selected) {
-    var sel = el("select", { class: "form-input", name: "category" });
-    sel.appendChild(el("option", { value: "" }, ["— Uncategorized —"]));
-    categories.forEach(function (c) {
+  function vocabSelect(name, options, selected, placeholder) {
+    var sel = el("select", { class: "form-input", name: name });
+    sel.appendChild(el("option", { value: "" }, [placeholder]));
+    options.forEach(function (c) {
       sel.appendChild(el("option", Object.assign({ value: c }, c === selected ? { selected: "selected" } : {}), [c]));
     });
     return sel;
   }
+
+  var DIFFICULTIES = ["Easy", "Medium", "Hard"];
 
   // recipe: an existing recipe or an imported draft; originalSlug: set when editing
   // an existing one (so a slug change updates in place).
@@ -189,7 +199,9 @@
     var f = {
       slug: el("input", { class: "form-input", name: "slug", value: recipe.slug || "", required: "required" }),
       title: el("input", { class: "form-input", name: "title", value: recipe.title || "", required: "required" }),
-      category: categorySelect(ctx.categories, recipe.category || ""),
+      category: vocabSelect("category", ctx.categories, recipe.category || "", "— Uncategorized —"),
+      cuisine: vocabSelect("cuisine", ctx.cuisines, recipe.cuisine || "", "— Any cuisine —"),
+      difficulty: vocabSelect("difficulty", DIFFICULTIES, recipe.difficulty || "", "— Difficulty —"),
       summary: el("textarea", { class: "form-input", name: "summary", rows: "3" }, [recipe.summary || ""]),
       hero_image_url: el("input", { class: "form-input", name: "hero_image_url", value: recipe.hero_image_url || "" }),
       notes: el("textarea", { class: "form-input", name: "notes", rows: "6" }, [recipe.notes || ""]),
@@ -203,6 +215,8 @@
     form.appendChild(field("Slug", f.slug));
     form.appendChild(field("Title", f.title));
     form.appendChild(field("Category", f.category));
+    form.appendChild(field("Cuisine", f.cuisine));
+    form.appendChild(field("Difficulty", f.difficulty));
     form.appendChild(field("Summary", f.summary));
     form.appendChild(mdPreview(f.summary, "inline"));
     form.appendChild(imageUploadRow(ctx, f.hero_image_url, f.slug));
@@ -228,6 +242,8 @@
         slug: f.slug.value.trim(),
         title: f.title.value.trim(),
         category: f.category.value || null,
+        cuisine: f.cuisine.value || null,
+        difficulty: f.difficulty.value || null,
         summary: f.summary.value.trim() || null,
         hero_image_url: f.hero_image_url.value.trim() || null,
         notes: f.notes.value.trim() || null,
@@ -335,8 +351,8 @@
     root.innerHTML = "";
     var formArea = el("div", { class: "recipe-form-area" });
     var listArea = el("div", { class: "recipe-admin-list" });
-    var categories = await getCategories();
-    var ctx = { formArea: formArea, listArea: listArea, categories: categories, reload: load };
+    var both = await Promise.all([getCategories(), getCuisines()]);
+    var ctx = { formArea: formArea, listArea: listArea, categories: both[0], cuisines: both[1], reload: load };
 
     root.appendChild(toolbar(ctx));
     root.appendChild(formArea);

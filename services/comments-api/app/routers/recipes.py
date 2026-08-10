@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.concurrency import run_in_threadpool
-from sqlalchemy import func, select, update
+from sqlalchemy import String, cast, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,11 +11,13 @@ from app.auth import require_moderator
 from app.config import Settings, get_settings
 from app.db import get_session
 from app.media_uploads import UploadError
-from app.models import Category, Recipe
+from app.models import Category, Cuisine, Recipe
 from app.recipe_import import RecipeImportError
 from app.schemas import (
     CategoryPublic,
     CategoryWrite,
+    CuisinePublic,
+    CuisineWrite,
     RecipeAdmin,
     RecipeImportRequest,
     RecipePublic,
@@ -38,11 +40,43 @@ async def list_category_names(session: AsyncSession = Depends(get_session)):
     return list(result.scalars())
 
 
+@router.get("/recipes/cuisines", response_model=list[str])
+async def list_cuisine_names(session: AsyncSession = Depends(get_session)):
+    """The cuisine vocabulary, in display order (moderator-maintained, like categories)."""
+    result = await session.execute(select(Cuisine.name).order_by(Cuisine.sort_order, Cuisine.name))
+    return list(result.scalars())
+
+
 @router.get("/recipes", response_model=list[RecipePublic])
-async def list_recipes(category: str | None = None, session: AsyncSession = Depends(get_session)):
+async def list_recipes(
+    q: str | None = None,
+    category: str | None = None,
+    cuisine: str | None = None,
+    difficulty: str | None = None,
+    session: AsyncSession = Depends(get_session),
+):
+    """Published recipes, optionally filtered by a free-text query and/or facets.
+    `q` matches (case-insensitively) across title, summary, notes, and the ingredient
+    and step text. `contains`/`func.lower` keep it portable across Postgres and the
+    SQLite test DB (no ILIKE)."""
     stmt = select(Recipe).where(Recipe.published.is_(True))
     if category is not None:
         stmt = stmt.where(Recipe.category == category)
+    if cuisine is not None:
+        stmt = stmt.where(Recipe.cuisine == cuisine)
+    if difficulty is not None:
+        stmt = stmt.where(Recipe.difficulty == difficulty)
+    if q and q.strip():
+        needle = q.strip().lower()
+        stmt = stmt.where(
+            or_(
+                func.lower(Recipe.title).contains(needle),
+                func.lower(func.coalesce(Recipe.summary, "")).contains(needle),
+                func.lower(func.coalesce(Recipe.notes, "")).contains(needle),
+                func.lower(cast(Recipe.ingredients, String)).contains(needle),
+                func.lower(cast(Recipe.steps, String)).contains(needle),
+            )
+        )
     result = await session.execute(stmt.order_by(Recipe.title.asc()))
     return list(result.scalars())
 
@@ -105,6 +139,7 @@ async def presign_upload(payload: UploadPresignRequest, settings: Settings = Dep
 )
 async def create_recipe(payload: RecipeWrite, session: AsyncSession = Depends(get_session)):
     await _ensure_valid_category(session, payload.category)
+    await _ensure_valid_cuisine(session, payload.cuisine)
     recipe = Recipe(**payload.model_dump())
     session.add(recipe)
     try:
@@ -122,6 +157,7 @@ async def update_recipe(slug: str, payload: RecipeWrite, session: AsyncSession =
     if recipe is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "recipe not found")
     await _ensure_valid_category(session, payload.category)
+    await _ensure_valid_cuisine(session, payload.cuisine)
 
     for field, value in payload.model_dump().items():
         setattr(recipe, field, value)
@@ -222,6 +258,81 @@ async def delete_category(category_id: uuid.UUID, session: AsyncSession = Depend
     await session.commit()
 
 
+# --- Cuisine management (moderator only) ------------------------------------
+
+
+@router.get("/admin/cuisines", response_model=list[CuisinePublic], dependencies=[Depends(require_moderator)])
+async def list_cuisines_admin(session: AsyncSession = Depends(get_session)):
+    result = await session.execute(select(Cuisine).order_by(Cuisine.sort_order, Cuisine.name))
+    return list(result.scalars())
+
+
+@router.post(
+    "/admin/cuisines",
+    response_model=CuisinePublic,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_moderator)],
+)
+async def create_cuisine(payload: CuisineWrite, session: AsyncSession = Depends(get_session)):
+    cuisine = Cuisine(name=payload.name.strip(), sort_order=payload.sort_order)
+    session.add(cuisine)
+    try:
+        await session.commit()
+    except IntegrityError:
+        await session.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, f"cuisine '{payload.name}' already exists") from None
+    await session.refresh(cuisine)
+    return cuisine
+
+
+@router.put(
+    "/admin/cuisines/{cuisine_id}",
+    response_model=CuisinePublic,
+    dependencies=[Depends(require_moderator)],
+)
+async def update_cuisine(
+    cuisine_id: uuid.UUID, payload: CuisineWrite, session: AsyncSession = Depends(get_session)
+):
+    cuisine = await session.get(Cuisine, cuisine_id)
+    if cuisine is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "cuisine not found")
+
+    old_name, new_name = cuisine.name, payload.name.strip()
+    cuisine.name = new_name
+    cuisine.sort_order = payload.sort_order
+    # A rename cascades to every recipe carrying the old (denormalized) name.
+    if new_name != old_name:
+        await session.execute(update(Recipe).where(Recipe.cuisine == old_name).values(cuisine=new_name))
+    try:
+        await session.commit()
+    except IntegrityError:
+        await session.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, f"cuisine '{new_name}' already exists") from None
+    await session.refresh(cuisine)
+    return cuisine
+
+
+@router.delete(
+    "/admin/cuisines/{cuisine_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_moderator)],
+)
+async def delete_cuisine(cuisine_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
+    cuisine = await session.get(Cuisine, cuisine_id)
+    if cuisine is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "cuisine not found")
+    in_use = await session.scalar(
+        select(func.count()).select_from(Recipe).where(Recipe.cuisine == cuisine.name)
+    )
+    if in_use:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"cuisine '{cuisine.name}' is used by {in_use} recipe(s); reassign them first",
+        )
+    await session.delete(cuisine)
+    await session.commit()
+
+
 async def _ensure_valid_category(session: AsyncSession, name: str | None) -> None:
     """A recipe's category must be null or the name of an existing category."""
     if name is None:
@@ -229,6 +340,15 @@ async def _ensure_valid_category(session: AsyncSession, name: str | None) -> Non
     exists = await session.scalar(select(Category.id).where(Category.name == name))
     if exists is None:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"category '{name}' does not exist")
+
+
+async def _ensure_valid_cuisine(session: AsyncSession, name: str | None) -> None:
+    """A recipe's cuisine must be null or the name of an existing cuisine."""
+    if name is None:
+        return
+    exists = await session.scalar(select(Cuisine.id).where(Cuisine.name == name))
+    if exists is None:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"cuisine '{name}' does not exist")
 
 
 async def _by_slug(session: AsyncSession, slug: str) -> Recipe | None:

@@ -1,9 +1,12 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models import CommentStatus
+
+# Hard-coded recipe difficulty levels (no table — a fixed vocabulary).
+DIFFICULTIES = ("Easy", "Medium", "Hard")
 
 
 class CommentCreate(BaseModel):
@@ -59,6 +62,28 @@ class CategoryPublic(BaseModel):
     sort_order: int
 
 
+# --- Cuisines --------------------------------------------------------------
+
+# Cuisines are data (the `cuisines` table), managed by moderators — same shape as
+# categories. A recipe's cuisine is null or the name of an existing cuisine (enforced
+# in the router against the DB). Seed set lives in migration 0006.
+
+
+class CuisineWrite(BaseModel):
+    """Create/update payload for a cuisine (moderator only)."""
+
+    name: str = Field(min_length=1, max_length=50)
+    sort_order: int = 0
+
+
+class CuisinePublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    sort_order: int
+
+
 # --- Recipes ---------------------------------------------------------------
 
 
@@ -68,6 +93,8 @@ class RecipeWrite(BaseModel):
     slug: str = Field(min_length=1, max_length=200, pattern=r"^[a-z0-9][a-z0-9-]*$")
     title: str = Field(min_length=1, max_length=200)
     category: str | None = Field(default=None, max_length=50)
+    cuisine: str | None = Field(default=None, max_length=50)
+    difficulty: str | None = Field(default=None, max_length=20)
     summary: str | None = Field(default=None, max_length=2000)
     notes: str | None = Field(default=None, max_length=20000)
     ingredients: list[str] = Field(default_factory=list)
@@ -75,6 +102,13 @@ class RecipeWrite(BaseModel):
     hero_image_url: str | None = Field(default=None, max_length=500)
     video_key: str | None = Field(default=None, max_length=300)
     published: bool = False
+
+    @field_validator("difficulty")
+    @classmethod
+    def _known_difficulty(cls, v: str | None) -> str | None:
+        if v is not None and v not in DIFFICULTIES:
+            raise ValueError(f"difficulty must be one of {DIFFICULTIES}")
+        return v
 
 
 class RecipePublic(BaseModel):
@@ -85,6 +119,8 @@ class RecipePublic(BaseModel):
     slug: str
     title: str
     category: str | None
+    cuisine: str | None
+    difficulty: str | None
     summary: str | None
     notes: str | None
     ingredients: list[str]
