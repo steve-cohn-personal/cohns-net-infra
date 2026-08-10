@@ -68,6 +68,40 @@ async def test_notes_round_trips(client):
     assert (await client.get("/recipes/pan-con-tomate")).json()["notes"] == story
 
 
+async def test_difficulty_round_trips(client):
+    r = await client.post("/recipes", json={**RECIPE, "difficulty": "Medium"}, headers=auth(MOD()))
+    assert r.status_code == 201 and r.json()["difficulty"] == "Medium"
+    assert (await client.get("/recipes/pan-con-tomate")).json()["difficulty"] == "Medium"
+
+
+async def test_unknown_difficulty_rejected(client):
+    bad = {**RECIPE, "difficulty": "Trivial"}
+    assert (await client.post("/recipes", json=bad, headers=auth(MOD()))).status_code == 422
+
+
+async def test_search_matches_title_and_ingredients(client):
+    await client.post("/recipes", json={**RECIPE, "slug": "sourdough", "title": "Sourdough Bread",
+                                        "ingredients": ["flour", "water", "salt"]}, headers=auth(MOD()))
+    await client.post("/recipes", json={**RECIPE, "slug": "guac", "title": "Guacamole",
+                                        "ingredients": ["avocado", "lime"]}, headers=auth(MOD()))
+    # title match (case-insensitive)
+    assert [r["slug"] for r in (await client.get("/recipes", params={"q": "sourdough"})).json()] == ["sourdough"]
+    # ingredient match
+    assert [r["slug"] for r in (await client.get("/recipes", params={"q": "AVOCADO"})).json()] == ["guac"]
+    # no match
+    assert (await client.get("/recipes", params={"q": "zzzz"})).json() == []
+
+
+async def test_search_facets_combine(client):
+    await client.post("/recipes", json={**RECIPE, "slug": "a", "title": "A", "cuisine": "Italian",
+                                        "difficulty": "Easy"}, headers=auth(MOD()))
+    await client.post("/recipes", json={**RECIPE, "slug": "b", "title": "B", "cuisine": "Mexican",
+                                        "difficulty": "Hard"}, headers=auth(MOD()))
+    assert [r["slug"] for r in (await client.get("/recipes", params={"cuisine": "Italian"})).json()] == ["a"]
+    assert [r["slug"] for r in (await client.get("/recipes", params={"difficulty": "Hard"})).json()] == ["b"]
+    assert (await client.get("/recipes", params={"cuisine": "Italian", "difficulty": "Hard"})).json() == []
+
+
 async def test_categories_endpoint(client):
     cats = (await client.get("/recipes/categories")).json()
     assert cats == ["Breads", "Candy", "Quick Meals", "Appetizers", "Main Courses", "Desserts"]

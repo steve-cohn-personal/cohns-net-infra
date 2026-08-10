@@ -18,12 +18,14 @@ from sqlalchemy import insert  # noqa: E402
 from app.config import get_settings  # noqa: E402
 from app.db import engine  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models import Base, Category  # noqa: E402
+from app.models import Base, Category, Cuisine  # noqa: E402
 from app.ratelimit import limiter  # noqa: E402
 
 # The seed categories (mirrors migration 0004) — recipe tests reference these by
 # name, and category validation now checks the DB, so seed them each fresh schema.
 SEED_CATEGORIES = ["Breads", "Candy", "Quick Meals", "Appetizers", "Main Courses", "Desserts"]
+# Seed cuisines too (mirrors migration 0006) — recipe cuisine validation checks the DB.
+SEED_CUISINES = ["American", "Italian", "Spanish", "Mexican", "French"]
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -37,6 +39,10 @@ async def _fresh_db():
         await conn.execute(
             insert(Category),
             [{"id": uuid.uuid4(), "name": n, "sort_order": i} for i, n in enumerate(SEED_CATEGORIES)],
+        )
+        await conn.execute(
+            insert(Cuisine),
+            [{"id": uuid.uuid4(), "name": n, "sort_order": i} for i, n in enumerate(SEED_CUISINES)],
         )
     yield
     await engine.dispose()
