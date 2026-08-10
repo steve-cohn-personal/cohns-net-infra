@@ -61,6 +61,36 @@
     return el("label", { class: "form-row" }, [el("span", {}, [labelText]), control]);
   }
 
+  // A live Markdown preview that mirrors how the recipe page renders `input`'s value.
+  // mode: "inline" (summary), "block" (story/notes), "lines-ul"/"lines-ol" (ingredients
+  // /steps, one Markdown line per item). Hidden when the field is empty.
+  function mdPreview(input, mode) {
+    var body = el("div", { class: "md-preview-body" });
+    var box = el("div", { class: "md-preview" }, [el("div", { class: "md-preview-label" }, ["Preview"]), body]);
+
+    function lines(v) {
+      return v.split("\n").map(function (x) { return x.trim(); }).filter(Boolean);
+    }
+    function render() {
+      var M = window.cohnsMD, v = input.value;
+      box.style.display = v.trim() ? "" : "none";
+      if (!v.trim()) return;
+      if (!M) { body.textContent = v; return; }
+      if (mode === "inline") {
+        body.innerHTML = M.renderInline(v);
+      } else if (mode === "block") {
+        body.innerHTML = M.render(v);
+      } else {
+        var tag = mode === "lines-ol" ? "ol" : "ul";
+        body.innerHTML = "<" + tag + ' class="' + (tag === "ol" ? "steps" : "ingredients") + '">' +
+          lines(v).map(function (l) { return "<li>" + M.renderInline(l) + "</li>"; }).join("") + "</" + tag + ">";
+      }
+    }
+    input.addEventListener("input", render);
+    render();
+    return box;
+  }
+
   // Uploads a picked image to S3 via a presigned PUT the API mints, then writes the
   // resulting public URL into the given hero_image_url <input> and shows a preview.
   // Returns a form-row: [file picker + status] with a live thumbnail.
@@ -174,11 +204,15 @@
     form.appendChild(field("Title", f.title));
     form.appendChild(field("Category", f.category));
     form.appendChild(field("Summary", f.summary));
+    form.appendChild(mdPreview(f.summary, "inline"));
     form.appendChild(imageUploadRow(ctx, f.hero_image_url, f.slug));
     form.appendChild(field("Photo URL", f.hero_image_url));
     form.appendChild(field("Story / notes — Markdown, supports [links](https://…)", f.notes));
-    form.appendChild(field("Ingredients (one per line)", f.ingredients));
-    form.appendChild(field("Steps (one per line)", f.steps));
+    form.appendChild(mdPreview(f.notes, "block"));
+    form.appendChild(field("Ingredients (one per line) — Markdown: [text](https://…), **bold**", f.ingredients));
+    form.appendChild(mdPreview(f.ingredients, "lines-ul"));
+    form.appendChild(field("Steps (one per line) — Markdown supported", f.steps));
+    form.appendChild(mdPreview(f.steps, "lines-ol"));
     form.appendChild(videoUploadRow(ctx, f.video_key, f.slug));
     form.appendChild(field("Video key (optional)", f.video_key));
     form.appendChild(el("label", { class: "form-check" }, [f.published, el("span", {}, ["Published"])]));

@@ -220,6 +220,27 @@ footer {
 .hero-upload { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
 .hero-preview { max-width: 12rem; max-height: 8rem; border-radius: 8px; border: 1px solid var(--border); }
 
+/* Admin editor: live Markdown preview under each Markdown-capable field. */
+.md-preview {
+  margin: -0.4rem 0 0.9rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.md-preview-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+.md-preview-body { font-size: 0.95rem; line-height: 1.5; }
+.md-preview-body p { margin: 0 0 0.5rem; }
+.md-preview-body ul, .md-preview-body ol { margin: 0; padding-left: 1.4rem; }
+.md-preview-body li { margin: 0.2rem 0; }
+.md-preview-body a { color: var(--accent); }
+
 /* Category filter chips + grouped sections on the recipe list. */
 .recipe-filters { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1.5rem 0 0.5rem; }
 .chip {
