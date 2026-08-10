@@ -35,6 +35,19 @@ jobs:
           role-to-assume: ${{ vars.SITE_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
+      # Cache-bust the un-hashed assets: stamp every /js, /css, /vendor reference in
+      # the HTML with this deploy's short commit SHA (?v=<sha>). HTML is served
+      # no-cache (below), so browsers re-fetch it every visit, see the new query, and
+      # pull fresh JS/CSS instead of a stale 1-hour-cached copy — which matters for
+      # correctness now (e.g. the affiliate tag lives in md.js). The asset files keep
+      # stable names; S3/CloudFront ignore the query for lookup, so no rename/build
+      # step is needed. Only rewritten when the SHA changes, so it's a no-op re-run.
+      - name: version assets in html
+        run: |
+          VER="${GITHUB_SHA::8}"
+          find site -name '*.html' -print0 | xargs -0 sed -i -E \
+            "s#(\"/(js|css|vendor)/[A-Za-z0-9._/-]+\.(js|css))\"#\1?v=${VER}\"#g"
+
       # Assets are served under stable, un-hashed names (/js/auth.js,
       # /css/main.css, /vendor/hls.min.js, /favicon.svg), so we can't use an
       # immutable year-long cache — browsers would pin a stale copy that a
