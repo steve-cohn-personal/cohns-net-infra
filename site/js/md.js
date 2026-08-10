@@ -21,6 +21,12 @@
   }
 
   var SITE_HOST = /(^|\.)cohns\.net$/i;
+  var AMAZON_HOST = /(^|\.)(amazon\.[a-z.]+|amzn\.to|amzn\.com)$/i;
+  // Amazon Associates store id. Public (it rides in every affiliate link), so it's
+  // fine to hard-code. Injected into Amazon links so purchases are attributed.
+  var AFFILIATE_TAG = "stevecohnsnet-20";
+
+  function unescapeUrl(u) { return u.replace(/&amp;/g, "&"); }
 
   function isSafeUrl(u) {
     return /^(https?:)?\/\//i.test(u) || /^(mailto:|\/|#)/i.test(u);
@@ -32,18 +38,41 @@
     // so they never get target=_blank/sponsored regardless of the serving host.
     if (!/^(https?:)?\/\//i.test(u)) return false;
     try {
-      var url = new URL(u.replace(/&amp;/g, "&"), location.origin);
+      var url = new URL(unescapeUrl(u), location.origin);
       return !!url.host && !SITE_HOST.test(url.host);
     } catch (e) {
       return false;
     }
   }
 
-  // text and url are already HTML-escaped substrings of the escaped input.
+  // Whether a URL points at Amazon (used for the FTC affiliate disclosure).
+  function isAmazonUrl(u) {
+    try { return AMAZON_HOST.test(new URL(unescapeUrl(u), location.origin).host); }
+    catch (e) { return false; }
+  }
+
+  // Set our Associates tag on Amazon links, replacing any tag already present (e.g.
+  // one carried over from an imported recipe). Takes/returns a real (unescaped) URL;
+  // non-Amazon URLs pass through untouched (not even normalized).
+  function withAffiliateTag(rawUrl) {
+    try {
+      var u = new URL(rawUrl, location.origin);
+      if (AMAZON_HOST.test(u.host)) {
+        u.searchParams.set("tag", AFFILIATE_TAG);
+        return u.toString();
+      }
+    } catch (e) { /* leave as-is */ }
+    return rawUrl;
+  }
+
+  // text and url are already HTML-escaped substrings of the escaped input. Unescape
+  // the URL to inject the affiliate tag, then re-escape once for the attribute — so
+  // query-string &s stay single-escaped (&amp;), never doubled.
   function link(text, url) {
     if (!isSafeUrl(url)) return text; // unsafe scheme → drop the link, keep the text
+    var href = escapeHtml(withAffiliateTag(unescapeUrl(url)));
     var rel = isExternal(url) ? ' target="_blank" rel="noopener nofollow sponsored"' : "";
-    return '<a href="' + url + '"' + rel + ">" + text + "</a>";
+    return '<a href="' + href + '"' + rel + ">" + text + "</a>";
   }
 
   function inline(s) {
@@ -80,5 +109,5 @@
     }).join("");
   }
 
-  window.cohnsMD = { render: render, renderInline: renderInline };
+  window.cohnsMD = { render: render, renderInline: renderInline, isAmazonUrl: isAmazonUrl };
 })();
