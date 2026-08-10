@@ -68,14 +68,26 @@ def test_presign_unconfigured_returns_none():
 
 def test_presign_configured(monkeypatch):
     captured = {}
+    client_kwargs = {}
 
     class _Client:
         def generate_presigned_url(self, op, Params, ExpiresIn):
             captured.update(op=op, **Params, ttl=ExpiresIn)
             return "https://s3.example/put?sig=1"
 
-    monkeypatch.setattr("boto3.client", lambda *a, **k: _Client())
+    def _fake_client(*a, **k):
+        client_kwargs.update(k)
+        return _Client()
+
+    monkeypatch.setattr("boto3.client", _fake_client)
     out = media_uploads.presign_put("image", "image/webp", "sourdough", _StubSettings())
+
+    # The client MUST be pinned to SigV4 + virtual-hosted addressing so the presigned
+    # host is the regional bucket endpoint the site CSP allows (else the browser PUT
+    # is CSP-blocked as "Failed to fetch").
+    cfg = client_kwargs["config"]
+    assert cfg.signature_version == "s3v4"
+    assert cfg.s3["addressing_style"] == "virtual"
 
     assert out["url"] == "https://s3.example/put?sig=1"
     assert out["key"].startswith("images/sourdough-") and out["key"].endswith(".webp")

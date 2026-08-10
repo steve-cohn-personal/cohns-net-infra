@@ -82,8 +82,18 @@ def presign_put(kind: str, content_type: str, slug: str | None, settings) -> dic
         return None  # uploads not configured here (→ 503)
 
     import boto3
+    from botocore.config import Config
 
-    client = boto3.client("s3", region_name=settings.aws_region)
+    # Pin SigV4 + virtual-hosted addressing so the presigned URL host is the REGIONAL
+    # bucket endpoint (<bucket>.s3.<region>.amazonaws.com) that the site CSP allows.
+    # Left unpinned, botocore can emit the legacy GLOBAL host (<bucket>.s3.amazonaws.com)
+    # with SigV2 — a different host that the browser's CSP connect-src blocks, so the
+    # upload PUT dies as "Failed to fetch".
+    client = boto3.client(
+        "s3",
+        region_name=settings.aws_region,
+        config=Config(signature_version="s3v4", s3={"addressing_style": "virtual"}),
+    )
     url = client.generate_presigned_url(
         "put_object",
         Params={"Bucket": bucket, "Key": key, "ContentType": content_type},
