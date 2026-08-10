@@ -213,6 +213,19 @@
         root.appendChild(el("h2", {}, ["Method"]));
         root.appendChild(el("ol", { class: "steps" }, r.steps.map(function (s) { return mdEl("li", null, s, false); })));
       }
+
+      // FTC + Amazon Associates: show the required disclosure only on pages that
+      // actually carry an Amazon affiliate link.
+      var links = root.querySelectorAll("a[href]");
+      var hasAmazon = false;
+      for (var li = 0; li < links.length; li++) {
+        if (window.cohnsMD && window.cohnsMD.isAmazonUrl(links[li].href)) { hasAmazon = true; break; }
+      }
+      if (hasAmazon) {
+        root.appendChild(el("p", { class: "affiliate-disclosure" }, [
+          "As an Amazon Associate I earn from qualifying purchases.",
+        ]));
+      }
     });
   }
 
