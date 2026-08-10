@@ -203,13 +203,15 @@
         });
       }
 
+      // Ingredients and steps are one line each — render inline Markdown so they
+      // support the same bold/italic/code/links as the description and story.
       if ((r.ingredients || []).length) {
         root.appendChild(el("h2", {}, ["Ingredients"]));
-        root.appendChild(el("ul", { class: "ingredients" }, r.ingredients.map(function (i) { return el("li", {}, [i]); })));
+        root.appendChild(el("ul", { class: "ingredients" }, r.ingredients.map(function (i) { return mdEl("li", null, i, false); })));
       }
       if ((r.steps || []).length) {
         root.appendChild(el("h2", {}, ["Method"]));
-        root.appendChild(el("ol", { class: "steps" }, r.steps.map(function (s) { return el("li", {}, [s]); })));
+        root.appendChild(el("ol", { class: "steps" }, r.steps.map(function (s) { return mdEl("li", null, s, false); })));
       }
     });
   }
