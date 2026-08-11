@@ -158,7 +158,15 @@
     panel.appendChild(el("h3", {}, ["Sessions — " + cls.title]));
     var list = el("div", {});
     var addHost = el("div", {});
-    function refresh() { openSessions(ctx, cls); }  // reload after change
+    // Re-fetch after any change so the freshly added/edited/removed session shows —
+    // rendering the stale in-memory `cls` here is what made adds look like no-ops.
+    async function refresh() {
+      try {
+        var classes = await authJSON(apiBase() + "/admin/classes");
+        var fresh = classes.find(function (x) { return x.id === cls.id; });
+        if (fresh) openSessions(ctx, fresh); else ctx.reload();
+      } catch (e) { ctx.reload(); }
+    }
 
     (cls.sessions || []).forEach(function (s) {
       var row = el("div", { class: "class-session" });
