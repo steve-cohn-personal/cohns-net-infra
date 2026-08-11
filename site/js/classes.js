@@ -53,10 +53,11 @@
   }
   function input(name, attrs) { return el("input", Object.assign({ class: "form-input", name: name }, attrs || {})); }
 
-  // A hidden honeypot the server drops if filled.
+  // A hidden honeypot the server drops if filled. Hidden via a CSS class (the site
+  // CSP is style-src 'self', so an inline style attribute would be ignored).
   function honeypot() {
     return el("input", { type: "text", name: "hp", tabindex: "-1", autocomplete: "off",
-      style: "position:absolute;left:-9999px", "aria-hidden": "true" });
+      class: "hp-field", "aria-hidden": "true" });
   }
 
   async function postForm(url, body, statusEl, okText) {

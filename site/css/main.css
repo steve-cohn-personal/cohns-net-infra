@@ -264,6 +264,8 @@ footer {
 .class-session-loc, .class-session-spots { color: var(--muted); font-weight: 400; }
 .class-none, .class-request-lead { color: var(--muted); }
 .class-form { max-width: 32rem; margin: 0.75rem 0 0; }
+/* Honeypot — kept off-screen (a class, since CSP style-src 'self' blocks inline styles). */
+.hp-field { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 .form-status.is-ok { color: var(--accent); }
 .form-status.is-err { color: #c0392b; }
 
