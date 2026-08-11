@@ -164,6 +164,16 @@ a:hover { text-decoration-thickness: 2px; }
   margin: 0;
   font-size: 0.925rem;
 }
+/* "Coming soon" badge (e.g. the Classes tile before the classes area ships). */
+.soon {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  padding: 0.2rem 0.75rem;
+}
 
 /* --- footer --- */
 
