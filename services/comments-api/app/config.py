@@ -56,6 +56,9 @@ class Settings(BaseSettings):
     # SNS topic that emails on a new access request. None = requests are accepted
     # but no notification is sent.
     access_request_topic_arn: str | None = None
+    # SNS topic that emails on a class signup/request. None = no notification sent
+    # (the signup/request still succeeds and persists).
+    class_topic_arn: str | None = None
 
     # Media uploads. Moderators upload recipe images (and, later, lesson videos)
     # straight to S3 via a presigned PUT the API mints. The buckets belong to the

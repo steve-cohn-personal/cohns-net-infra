@@ -103,6 +103,8 @@ module "service" {
     COMMENTS_COGNITO_POOL_ID          = data.terraform_remote_state.shared.outputs.cognito_user_pool_id
     COMMENTS_COGNITO_ADMIN_ROLE_ARN   = data.terraform_remote_state.shared.outputs.cognito_user_admin_role_arn
     COMMENTS_ACCESS_REQUEST_TOPIC_ARN = aws_sns_topic.access_requests.arn
+    # Emails Steve on a class signup/request.
+    COMMENTS_CLASS_TOPIC_ARN = aws_sns_topic.class_notifications.arn
     # Media uploads (prod-only; empty elsewhere → the presign endpoint 503s).
     COMMENTS_MEDIA_OUTPUT_BUCKET = var.media_output_bucket == null ? "" : var.media_output_bucket
     COMMENTS_MEDIA_INGEST_BUCKET = var.media_ingest_bucket == null ? "" : var.media_ingest_bucket
@@ -135,6 +137,20 @@ resource "aws_sns_topic_subscription" "access_requests_email" {
   endpoint  = each.value
 }
 
+# Emails on a class signup or request. Same recipients as access requests.
+resource "aws_sns_topic" "class_notifications" {
+  name              = "comments-${var.environment}-class-notifications"
+  kms_master_key_id = "alias/aws/sns"
+  tags              = local.tags
+}
+
+resource "aws_sns_topic_subscription" "class_notifications_email" {
+  for_each  = toset(var.access_request_emails)
+  topic_arn = aws_sns_topic.class_notifications.arn
+  protocol  = "email"
+  endpoint  = each.value
+}
+
 # The task may assume the scoped Cognito-admin role (in shared-services) and publish
 # to its own access-request topic. Nothing broader.
 data "aws_iam_policy_document" "task_admin" {
@@ -148,7 +164,7 @@ data "aws_iam_policy_document" "task_admin" {
     sid       = "PublishAccessRequests"
     effect    = "Allow"
     actions   = ["sns:Publish"]
-    resources = [aws_sns_topic.access_requests.arn]
+    resources = [aws_sns_topic.access_requests.arn, aws_sns_topic.class_notifications.arn]
   }
 }
 

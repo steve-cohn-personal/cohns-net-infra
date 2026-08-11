@@ -11,7 +11,7 @@ from app.config import get_settings
 from app.db import engine
 from app.models import Base
 from app.ratelimit import limiter
-from app.routers import admin_users, comments, moderation, recipes
+from app.routers import admin_users, classes, comments, moderation, recipes
 
 settings = get_settings()
 
@@ -55,6 +55,7 @@ app.add_middleware(
 app.include_router(comments.router)
 app.include_router(moderation.router)
 app.include_router(recipes.router)
+app.include_router(classes.router)
 app.include_router(admin_users.router)
 app.include_router(admin_users.requests_router)
 

@@ -251,6 +251,22 @@ footer {
 .md-preview-body li { margin: 0.2rem 0; }
 .md-preview-body a { color: var(--accent); }
 
+/* Classes: sessions + signup/request forms on the class detail page. */
+.class-card-meta { color: var(--accent); font-size: 0.85rem; margin: 0.4rem 1.4rem 1.25rem; }
+.recipe-card:not(.has-thumb) .class-card-meta { margin-left: 0; margin-right: 0; }
+.class-session {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin: 0.75rem 0;
+}
+.class-session-when { margin: 0 0 0.5rem; }
+.class-session-loc, .class-session-spots { color: var(--muted); font-weight: 400; }
+.class-none, .class-request-lead { color: var(--muted); }
+.class-form { max-width: 32rem; margin: 0.75rem 0 0; }
+.form-status.is-ok { color: var(--accent); }
+.form-status.is-err { color: #c0392b; }
+
 /* FTC affiliate disclosure, shown under recipes that carry an Amazon link. */
 .affiliate-disclosure {
   margin: 2.5rem 0 0;

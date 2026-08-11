@@ -124,3 +124,43 @@ def notify_access_request(settings, *, name: str, email: str | None, sub: str, g
         ),
     )
     return True
+
+
+def _publish_class(settings, subject: str, message: str) -> bool:
+    """Publish to the class-notifications SNS topic (this account, task creds — no
+    assume-role). Returns False when unconfigured (local/tests) — the caller's request
+    still succeeds silently."""
+    if not settings.class_topic_arn:
+        return False
+    import boto3
+
+    boto3.client("sns", region_name=settings.aws_region).publish(
+        TopicArn=settings.class_topic_arn, Subject=subject, Message=message
+    )
+    return True
+
+
+def notify_class_signup(settings, *, class_title: str, when: str, name: str, email: str,
+                        party_size: int, status: str, message: str | None) -> bool:
+    """Email Steve that someone signed up for a class session."""
+    body = (
+        f"{name} <{email}> signed up for {class_title}.\n\n"
+        f"Session: {when}\n"
+        f"Party size: {party_size}\n"
+        f"Status: {status}\n"
+    )
+    if message:
+        body += f"\nMessage:\n{message}\n"
+    return _publish_class(settings, f"cohns.net — class signup: {class_title}", body)
+
+
+def notify_class_request(settings, *, class_title: str | None, name: str, email: str,
+                         message: str | None, preferred_timeframe: str | None) -> bool:
+    """Email Steve that someone requested a class (or a new date)."""
+    subject = f"cohns.net — class request: {class_title}" if class_title else "cohns.net — class request"
+    body = f"{name} <{email}> requested {class_title or 'a class'}.\n"
+    if preferred_timeframe:
+        body += f"\nPreferred timeframe: {preferred_timeframe}\n"
+    if message:
+        body += f"\nMessage:\n{message}\n"
+    return _publish_class(settings, subject, body)
