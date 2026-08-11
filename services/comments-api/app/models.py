@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, DateTime, Enum, Integer, String, Text, func
+from sqlalchemy import JSON, Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.types import Uuid
 
@@ -133,3 +133,78 @@ class Cuisine(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, server_default=func.now(), onupdate=_utcnow
     )
+
+
+# --- Classes (cooking-class workshops) --------------------------------------
+# Authored like recipes (moderator-gated, `published` gates visibility). A Class has
+# 0+ scheduled ClassSessions people sign up for; a ClassRequest is interest in a class
+# or a new date. No payment in this iteration — `price_cents`/signup `status` are
+# reserved so a later payment layer needs no reshaping.
+
+
+class Class(Base):
+    __tablename__ = "classes"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    slug: Mapped[str] = mapped_column(String(200), unique=True, index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)      # short, Markdown
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)  # long, Markdown
+    hero_image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    published: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, index=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, server_default=func.now(), onupdate=_utcnow
+    )
+
+
+class ClassSession(Base):
+    __tablename__ = "class_sessions"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("classes.id", ondelete="CASCADE"), index=True)
+    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    duration_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    location: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    capacity: Mapped[int | None] = mapped_column(Integer, nullable=True)  # null = unlimited
+    status: Mapped[str] = mapped_column(String(20), default="scheduled")  # scheduled | cancelled
+    price_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)  # reserved for future payment
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, server_default=func.now(), onupdate=_utcnow
+    )
+
+
+class ClassSignup(Base):
+    __tablename__ = "class_signups"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("class_sessions.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    email: Mapped[str] = mapped_column(String(255))
+    party_size: Mapped[int] = mapped_column(Integer, default=1)
+    message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # registered | waitlisted | cancelled (room for paid/pending once payment lands).
+    status: Mapped[str] = mapped_column(String(20), default="registered")
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, server_default=func.now())
+
+
+class ClassRequest(Base):
+    __tablename__ = "class_requests"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    # The class this is about, or null for a general "teach a class" request.
+    class_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("classes.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    name: Mapped[str] = mapped_column(String(120))
+    email: Mapped[str] = mapped_column(String(255))
+    message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    preferred_timeframe: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, server_default=func.now())

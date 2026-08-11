@@ -164,6 +164,112 @@ class UploadPresignResponse(BaseModel):
     video_key: str | None = None
 
 
+# --- Classes ---------------------------------------------------------------
+
+# Basic email shape — enough for a signup form without pulling in email-validator.
+_EMAIL = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
+
+
+class ClassWrite(BaseModel):
+    """Create/update payload for a class (moderator only)."""
+
+    slug: str = Field(min_length=1, max_length=200, pattern=r"^[a-z0-9][a-z0-9-]*$")
+    title: str = Field(min_length=1, max_length=200)
+    summary: str | None = Field(default=None, max_length=2000)
+    description: str | None = Field(default=None, max_length=20000)
+    hero_image_url: str | None = Field(default=None, max_length=500)
+    published: bool = False
+    sort_order: int = 0
+
+
+class ClassSessionWrite(BaseModel):
+    """Create/update payload for a scheduled session (moderator only)."""
+
+    starts_at: datetime
+    duration_minutes: int | None = Field(default=None, ge=1, le=1440)
+    location: str | None = Field(default=None, max_length=200)
+    capacity: int | None = Field(default=None, ge=1, le=1000)
+    status: str = Field(default="scheduled", pattern="^(scheduled|cancelled)$")
+    price_cents: int | None = Field(default=None, ge=0)  # reserved for future payment
+    notes: str | None = Field(default=None, max_length=2000)
+
+
+class ClassSessionPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    starts_at: datetime
+    duration_minutes: int | None
+    location: str | None
+    capacity: int | None
+    status: str
+    spots_left: int | None = None  # computed by the router; null = unlimited
+
+
+class ClassPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    slug: str
+    title: str
+    summary: str | None
+    description: str | None
+    hero_image_url: str | None
+    sessions: list[ClassSessionPublic] = Field(default_factory=list)
+
+
+class ClassAdmin(ClassPublic):
+    id: uuid.UUID
+    published: bool
+    sort_order: int
+
+
+class ClassSignupWrite(BaseModel):
+    """A public signup for a scheduled session (name + email, no login)."""
+
+    name: str = Field(min_length=1, max_length=120)
+    email: str = Field(pattern=_EMAIL, max_length=255)
+    party_size: int = Field(default=1, ge=1, le=20)
+    message: str | None = Field(default=None, max_length=2000)
+    hp: str | None = Field(default=None, max_length=200)  # honeypot — bots fill it; router silently drops
+
+
+class ClassRequestWrite(BaseModel):
+    """A public request for a class or a new date (name + email, no login)."""
+
+    name: str = Field(min_length=1, max_length=120)
+    email: str = Field(pattern=_EMAIL, max_length=255)
+    message: str | None = Field(default=None, max_length=2000)
+    preferred_timeframe: str | None = Field(default=None, max_length=200)
+    hp: str | None = Field(default=None, max_length=0)  # honeypot
+
+
+class ClassSignupAdmin(BaseModel):
+    """A roster row a moderator sees."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    session_id: uuid.UUID
+    name: str
+    email: str
+    party_size: int
+    message: str | None
+    status: str
+    created_at: datetime
+
+
+class ClassRequestAdmin(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    class_id: uuid.UUID | None
+    name: str
+    email: str
+    message: str | None
+    preferred_timeframe: str | None
+    created_at: datetime
+
+
 # --- User administration ----------------------------------------------------
 
 
