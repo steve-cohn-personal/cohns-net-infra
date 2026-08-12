@@ -23,14 +23,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
 
       # Authenticate + log in to ECR only when we intend to push (main). PR builds
       # need no AWS access at all.
       - name: configure aws credentials
         if: github.event_name == 'push'
-        uses: aws-actions/configure-aws-credentials@v5
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.ECR_PUSH_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
@@ -40,7 +40,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: build (push on main)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ${{ env.CONTEXT }}
           push: ${{ github.event_name == 'push' }}
