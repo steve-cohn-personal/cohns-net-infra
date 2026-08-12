@@ -65,7 +65,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        environment: [dev, stage, prod]
+        environment: [dev, stage]
+    # prod is intentionally absent from the PR plan matrix. The prod Environment's
+    # required-reviewer gate protects more than applies: gha-tf-prod is used for
+    # BOTH plan and apply and can assume prod admin, so that gate is also what
+    # stops untrusted PR code from running `terraform plan` with prod-admin creds.
+    # Auto-planning prod on PRs would mean trusting an unprotected environment to
+    # assume that role — a security regression. Plan prod deliberately via
+    # workflow_dispatch (it runs through environment: prod and stays gated); the
+    # dev/stage plans plus the apply-time plan cover PR review.
     environment: ${{ matrix.environment }}
     steps:
       - uses: actions/checkout@v7
