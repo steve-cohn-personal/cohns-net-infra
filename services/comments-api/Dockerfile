@@ -1,14 +1,14 @@
 # Multi-stage: build a venv with the Postgres driver, then copy it into a slim,
 # non-root runtime. Pinned to 3.12 for stable wheels (incl. asyncpg).
 
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 WORKDIR /build
 ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 COPY pyproject.toml ./
 COPY app ./app
 RUN python -m venv /venv && /venv/bin/pip install --upgrade pip && /venv/bin/pip install ".[postgres]"
 
-FROM python:3.12-slim
+FROM python:3.14-slim
 RUN groupadd --system app && useradd --system --gid app --home /app app
 WORKDIR /app
 
