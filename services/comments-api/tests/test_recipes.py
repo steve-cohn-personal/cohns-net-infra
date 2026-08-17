@@ -79,6 +79,22 @@ async def test_unknown_difficulty_rejected(client):
     assert (await client.post("/recipes", json=bad, headers=auth(MOD()))).status_code == 422
 
 
+async def test_servings_defaults_to_one(client):
+    r = await client.post("/recipes", json=RECIPE, headers=auth(MOD()))  # no servings in payload
+    assert r.status_code == 201 and r.json()["servings"] == 1
+    assert (await client.get("/recipes/pan-con-tomate")).json()["servings"] == 1
+
+
+async def test_servings_round_trips(client):
+    r = await client.post("/recipes", json={**RECIPE, "servings": 4}, headers=auth(MOD()))
+    assert r.status_code == 201 and r.json()["servings"] == 4
+    assert (await client.get("/recipes/pan-con-tomate")).json()["servings"] == 4
+
+
+async def test_servings_must_be_positive(client):
+    assert (await client.post("/recipes", json={**RECIPE, "servings": 0}, headers=auth(MOD()))).status_code == 422
+
+
 async def test_search_matches_title_and_ingredients(client):
     await client.post("/recipes", json={**RECIPE, "slug": "sourdough", "title": "Sourdough Bread",
                                         "ingredients": ["flour", "water", "salt"]}, headers=auth(MOD()))

@@ -97,6 +97,9 @@ class RecipeWrite(BaseModel):
     difficulty: str | None = Field(default=None, max_length=20)
     summary: str | None = Field(default=None, max_length=2000)
     notes: str | None = Field(default=None, max_length=20000)
+    # Structured yield so the site can scale ingredient amounts. Always >= 1; a recipe
+    # with no known yield is 1 (the default), not null — see migration 0008.
+    servings: int = Field(default=1, ge=1, le=1000)
     ingredients: list[str] = Field(default_factory=list)
     steps: list[str] = Field(default_factory=list)
     hero_image_url: str | None = Field(default=None, max_length=500)
@@ -123,6 +126,7 @@ class RecipePublic(BaseModel):
     difficulty: str | None
     summary: str | None
     notes: str | None
+    servings: int
     ingredients: list[str]
     steps: list[str]
     hero_image_url: str | None

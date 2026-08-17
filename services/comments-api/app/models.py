@@ -80,6 +80,11 @@ class Recipe(Base):
     # HTML on the site; links in it (and in summary) are the hook for affiliate links.
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # How many servings the ingredient quantities make. A structured field (not buried
+    # in the summary) so the site can scale ingredients up/down. Always >= 1; recipes
+    # with no known yield default to 1 (see migration 0008 and scripts/backfill_servings.py).
+    servings: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+
     # Lists of strings, stored as JSON (JSONB on Postgres, text on SQLite).
     ingredients: Mapped[list] = mapped_column(JSON, default=list)
     steps: Mapped[list] = mapped_column(JSON, default=list)

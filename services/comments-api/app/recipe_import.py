@@ -179,6 +179,34 @@ def _yield_text(value) -> str | None:
     return text if re.search(r"[a-zA-Z]", text) else f"Serves {text}"
 
 
+_SERVINGS_RE = re.compile(r"(?:serves?|servings?|makes|yields?)\D*(\d+)|^\s*(\d+)\b", re.I)
+
+
+def parse_servings(value) -> int | None:
+    """Recover a serving *count* from a schema.org recipeYield, or None when the yield
+    is a volume/size rather than a count ("about 3 liters", "one 9-inch pie"). A bare
+    number or a "Serves N"/"N servings"/"Makes N" phrase counts; anything else does not.
+    Takes the low end of a range ("4 to 6" -> 4). Clamped to the schema's 1..1000."""
+    if isinstance(value, list):
+        value = value[0] if value else None
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        n = int(value)
+        return n if 1 <= n <= 1000 else None
+    if not isinstance(value, str):
+        return None
+    text = clean_text(value)
+    # A volume/weight yield is not a serving count — leave those unset (default 1).
+    if re.search(r"\b(?:l|ml|liters?|litres?|g|kg|oz|lb|lbs|cups?|quarts?|pints?|gallons?)\b", text, re.I):
+        return None
+    m = _SERVINGS_RE.search(text)
+    if not m:
+        return None
+    n = int(m.group(1) or m.group(2))
+    return n if 1 <= n <= 1000 else None
+
+
 def _source_name(recipe: dict, source_url: str) -> str:
     author = recipe.get("author")
     if isinstance(author, list):
@@ -194,9 +222,14 @@ def _source_name(recipe: dict, source_url: str) -> str:
 
 def build_summary(recipe: dict, source_url: str, max_len: int = 2000) -> str:
     facts = []
-    y = _yield_text(recipe.get("recipeYield"))
-    if y:
-        facts.append(y)
+    recipe_yield = recipe.get("recipeYield")
+    # When the yield is a serving *count* it goes in the structured `servings` field,
+    # so keep it out of the summary prose. A volume/size yield ("3 liters") has no
+    # count and still belongs in the summary.
+    if parse_servings(recipe_yield) is None:
+        y = _yield_text(recipe_yield)
+        if y:
+            facts.append(y)
     prep = _iso_duration_to_human(recipe.get("prepTime"))
     cook = _iso_duration_to_human(recipe.get("cookTime"))
     total = _iso_duration_to_human(recipe.get("totalTime"))
@@ -225,6 +258,7 @@ def to_recipe_write(recipe: dict, source_url: str) -> dict:
         "title": title[:200],
         "category": None,          # a moderator picks the category before publishing
         "summary": build_summary(recipe, source_url),
+        "servings": parse_servings(recipe.get("recipeYield")) or 1,
         "ingredients": ingredients,
         "steps": steps,
         "hero_image_url": None,    # never lift the source's photo
