@@ -36,9 +36,17 @@ WRITE_FIELDS = [
     "servings", "ingredients", "steps", "hero_image_url", "video_key", "published",
 ]
 
-# A yield phrase in prose. Take the low end of a range ("4 to 6" -> 4).
-_SERVINGS_RE = re.compile(r"(?:serves?|servings?|makes|yields?)\D*(\d+)", re.I)
-# A volume/weight yield is a size, not a count — don't read a serving number from it.
+# The number must sit *adjacent* to a serving keyword, or the parse grabs an
+# unrelated number — imported summaries read "3 to 4 servings. Total 30 min.", and a
+# loose "servings\D*(\d+)" would skip past "servings" and pick up the 30 in the time.
+# Patterns, in priority order (low end of a range wins):
+#   "3 to 4 servings" -> 3      "4 servings" / "16 Servings" -> N
+#   "Serves 6" / "Makes 12" -> N
+_RANGE_BEFORE = re.compile(r"(\d+)\s*(?:to|or|[-–—])\s*\d+\s+servings?\b", re.I)
+_NUM_BEFORE = re.compile(r"(\d+)\s+servings?\b", re.I)
+_KW_BEFORE = re.compile(r"\b(?:serves?|makes|yields?)\s*:?\s*(\d+)", re.I)
+# A volume/weight yield is a size, not a count ("Makes 3 liters") — don't read a
+# serving number from it unless the text also literally says "serves"/"servings".
 _VOLUME_RE = re.compile(
     r"\b(?:l|ml|liters?|litres?|g|kg|oz|lb|lbs|cups?|quarts?|pints?|gallons?)\b", re.I
 )
@@ -50,13 +58,14 @@ def parse_servings(summary: str | None) -> int | None:
     text = (summary or "").strip()
     if not text:
         return None
-    if _VOLUME_RE.search(text) and not re.search(r"serves?\b|servings?\b", text, re.I):
+    if _VOLUME_RE.search(text) and not re.search(r"\bservings?\b|\bserves?\b", text, re.I):
         return None
-    m = _SERVINGS_RE.search(text)
-    if not m:
-        return None
-    n = int(m.group(1))
-    return n if 1 <= n <= 1000 else None
+    for rx in (_RANGE_BEFORE, _NUM_BEFORE, _KW_BEFORE):
+        m = rx.search(text)
+        if m:
+            n = int(m.group(1))
+            return n if 1 <= n <= 1000 else None
+    return None
 
 
 def api_base(env: str) -> str:
