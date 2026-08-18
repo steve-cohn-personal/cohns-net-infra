@@ -88,6 +88,106 @@
     }
   }
 
+  // --- ingredient scaling ----------------------------------------------------
+  // Scale the leading quantity of an ingredient line by a factor so a reader can
+  // cook a different number of servings. Only the amount at the start of the line
+  // is touched (the common case: "500g carrot", "1 tbsp salt", "1/2 cup rice"),
+  // which keeps stray numbers in the text — pan sizes, temperatures — untouched.
+
+  var VULGAR = {
+    "¼": 0.25, "½": 0.5, "¾": 0.75, "⅓": 1 / 3, "⅔": 2 / 3,
+    "⅛": 0.125, "⅜": 0.375, "⅝": 0.625, "⅞": 0.875,
+    "⅕": 0.2, "⅖": 0.4, "⅗": 0.6, "⅘": 0.8, "⅙": 1 / 6, "⅚": 5 / 6,
+  };
+  var VG = "¼½¾⅓⅔⅛⅜⅝⅞⅕⅖⅗⅘⅙⅚";
+  // One quantity token: mixed ("2 1/2"), fraction ("1/2"), decimal/int with an
+  // optional trailing vulgar glyph ("2", "2.5", "2½"), or a lone vulgar glyph ("½").
+  // The trailing vulgar glyph (and the space before it) is optional as a *unit* — so
+  // "2 ½" is one token but "4 " (number then a word) leaves its space for the unit/name.
+  var QTY = "(?:\\d+\\s+\\d+\\s*/\\s*\\d+|\\d+\\s*/\\s*\\d+|\\d+(?:\\.\\d+)?(?:\\s*[" + VG + "])?|[" + VG + "])";
+
+  // Friendly kitchen fractions to snap a scaled amount to before falling back to a
+  // rounded decimal. Ordered largest-denominator-error-tolerant last isn't needed —
+  // we pick the closest.
+  var NICE = [[1, 4], [1, 3], [1, 2], [2, 3], [3, 4], [1, 8], [3, 8], [5, 8], [7, 8]];
+
+  function qtyToNumber(token) {
+    token = token.trim();
+    // Trailing (or lone) vulgar glyph, with an optional whole part: "2½", "½".
+    var vg = token.match(new RegExp("^(\\d+)?\\s*([" + VG + "])$"));
+    if (vg) return (vg[1] ? parseInt(vg[1], 10) : 0) + VULGAR[vg[2]];
+    // ASCII fraction, optionally mixed: "1/2", "2 1/2".
+    var fr = token.match(/^(?:(\d+)\s+)?(\d+)\s*\/\s*(\d+)$/);
+    if (fr) return (fr[1] ? parseInt(fr[1], 10) : 0) + parseInt(fr[2], 10) / parseInt(fr[3], 10);
+    var n = parseFloat(token);
+    return isNaN(n) ? null : n;
+  }
+
+  function numberToQty(n) {
+    if (n == null || !isFinite(n) || n <= 0) return "0";
+    var whole = Math.floor(n + 1e-6);
+    var frac = n - whole;
+    if (frac < 0.02) return String(whole);
+    // Snap the fractional part to the closest nice fraction if it's close enough.
+    var best = null;
+    NICE.forEach(function (f) {
+      var err = Math.abs(frac - f[0] / f[1]);
+      if (err <= 0.04 && (!best || err < best.err)) best = { num: f[0], den: f[1], err: err };
+    });
+    if (best) {
+      var f = best.num + "/" + best.den;
+      return whole ? whole + " " + f : f;
+    }
+    // No clean fraction — a trimmed 2-decimal number reads fine ("1.75", "2.4").
+    return String(Math.round(n * 100) / 100);
+  }
+
+  // Scale one ingredient line's leading amount (or leading range, "1-2 onions").
+  function scaleIngredient(line, factor) {
+    if (factor === 1) return line;
+    var re = new RegExp("^(\\s*)(" + QTY + ")(?:(\\s*(?:-|–|—|to)\\s*)(" + QTY + "))?");
+    return line.replace(re, function (m, lead, a, sep, b) {
+      var av = qtyToNumber(a);
+      if (av == null) return m; // shouldn't happen, but never mangle on a parse miss
+      var out = lead + numberToQty(av * factor);
+      if (b) {
+        var bv = qtyToNumber(b);
+        out += sep + (bv == null ? b : numberToQty(bv * factor));
+      }
+      return out;
+    });
+  }
+
+  // A servings stepper: −/+ buttons around an editable count, plus a "reset" that
+  // appears once the reader has scaled away from the recipe's original yield. Calls
+  // onChange(current) whenever the count changes so the caller can rescale.
+  function servingsControl(base, onChange) {
+    var current = base;
+    var input = el("input", { class: "form-input servings-input", type: "number", min: "1", max: "1000", value: String(base) });
+    var reset = el("button", { type: "button", class: "servings-reset" }, ["reset"]);
+
+    function set(n) {
+      n = Math.max(1, Math.min(1000, Math.round(n) || 1));
+      current = n;
+      input.value = String(n);
+      reset.style.display = n === base ? "none" : "";
+      onChange(n);
+    }
+    var minus = el("button", { type: "button", class: "servings-step", "aria-label": "Fewer servings" }, ["−"]);
+    var plus = el("button", { type: "button", class: "servings-step", "aria-label": "More servings" }, ["+"]);
+    minus.addEventListener("click", function () { set(current - 1); });
+    plus.addEventListener("click", function () { set(current + 1); });
+    input.addEventListener("change", function () { set(parseInt(input.value, 10)); });
+    reset.addEventListener("click", function () { set(base); });
+    reset.style.display = "none";
+
+    return el("div", { class: "servings-control" }, [
+      el("span", { class: "servings-label" }, ["Servings"]),
+      el("div", { class: "servings-stepper" }, [minus, input, plus]),
+      reset,
+    ]);
+  }
+
   // Falls back to the fixed set if /recipes/categories is unreachable (sample mode).
   var CATEGORY_FALLBACK = ["Breads", "Candy", "Quick Meals", "Appetizers", "Main Courses", "Desserts"];
   var OTHER = "Other";
@@ -303,7 +403,19 @@
       // support the same bold/italic/code/links as the description and story.
       if ((r.ingredients || []).length) {
         root.appendChild(el("h2", {}, ["Ingredients"]));
-        root.appendChild(el("ul", { class: "ingredients" }, r.ingredients.map(function (i) { return mdEl("li", null, i, false); })));
+        var base = Math.max(1, parseInt(r.servings, 10) || 1);
+        var list = el("ul", { class: "ingredients" });
+        // Repaint every ingredient at `current` servings, scaling the leading amount.
+        function paintIngredients(current) {
+          var factor = current / base;
+          list.innerHTML = "";
+          r.ingredients.forEach(function (i) {
+            list.appendChild(mdEl("li", null, scaleIngredient(i, factor), false));
+          });
+        }
+        root.appendChild(servingsControl(base, paintIngredients));
+        root.appendChild(list);
+        paintIngredients(base);
       }
       if ((r.steps || []).length) {
         root.appendChild(el("h2", {}, ["Method"]));

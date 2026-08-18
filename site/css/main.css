@@ -390,6 +390,58 @@ footer {
 .ingredients, .steps { padding-left: 1.4rem; }
 .ingredients li, .steps li { margin: 0.35rem 0; }
 
+/* Servings stepper above the ingredient list — scales the amounts live. */
+.servings-control {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+}
+.servings-label { color: var(--muted); font-size: 0.95rem; }
+.servings-stepper {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.servings-step {
+  border: none;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 1.15rem;
+  line-height: 1;
+  width: 2.2rem;
+  cursor: pointer;
+}
+.servings-step:hover { color: var(--accent); }
+.servings-input {
+  width: 3.5rem;
+  text-align: center;
+  border: none;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 1rem;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.servings-input::-webkit-outer-spin-button,
+.servings-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.servings-input:focus { outline: none; }
+.servings-reset {
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0;
+}
+.servings-reset:hover { text-decoration: underline; }
+
 .demo-note {
   font-size: 0.85rem;
   color: var(--muted);

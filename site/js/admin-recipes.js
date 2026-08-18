@@ -202,6 +202,7 @@
       category: vocabSelect("category", ctx.categories, recipe.category || "", "— Uncategorized —"),
       cuisine: vocabSelect("cuisine", ctx.cuisines, recipe.cuisine || "", "— Any cuisine —"),
       difficulty: vocabSelect("difficulty", DIFFICULTIES, recipe.difficulty || "", "— Difficulty —"),
+      servings: el("input", { class: "form-input", name: "servings", type: "number", min: "1", max: "1000", value: String(recipe.servings || 1) }),
       summary: el("textarea", { class: "form-input", name: "summary", rows: "3" }, [recipe.summary || ""]),
       hero_image_url: el("input", { class: "form-input", name: "hero_image_url", value: recipe.hero_image_url || "" }),
       notes: el("textarea", { class: "form-input", name: "notes", rows: "6" }, [recipe.notes || ""]),
@@ -217,6 +218,7 @@
     form.appendChild(field("Category", f.category));
     form.appendChild(field("Cuisine", f.cuisine));
     form.appendChild(field("Difficulty", f.difficulty));
+    form.appendChild(field("Servings (scales ingredient amounts on the recipe page)", f.servings));
     form.appendChild(field("Summary", f.summary));
     form.appendChild(mdPreview(f.summary, "inline"));
     form.appendChild(imageUploadRow(ctx, f.hero_image_url, f.slug));
@@ -244,6 +246,7 @@
         category: f.category.value || null,
         cuisine: f.cuisine.value || null,
         difficulty: f.difficulty.value || null,
+        servings: Math.max(1, Math.min(1000, parseInt(f.servings.value, 10) || 1)),
         summary: f.summary.value.trim() || null,
         hero_image_url: f.hero_image_url.value.trim() || null,
         notes: f.notes.value.trim() || null,

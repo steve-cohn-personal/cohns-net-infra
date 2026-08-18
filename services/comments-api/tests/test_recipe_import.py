@@ -29,9 +29,41 @@ def test_import_parses_facts_and_regenerates_prose(monkeypatch):
     assert d["ingredients"] == ["300g bomba rice", "saffron"]
     assert d["steps"] == ["Saute.", "Simmer."]
     assert d["published"] is False and d["category"] is None and d["hero_image_url"] is None
+    # A serving *count* goes to the structured field, not the summary prose.
+    assert d["servings"] == 4 and "serving" not in d["summary"].lower()
     # copyright discipline: no headnote, no image; summary from facts + attribution
     assert "COPYRIGHTED" not in d["summary"]
-    assert "4 servings" in d["summary"] and "Prep 20 min" in d["summary"] and "A. Chef" in d["summary"]
+    assert "Prep 20 min" in d["summary"] and "A. Chef" in d["summary"]
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        (4, 4),
+        ("4", 4),
+        ("4 servings", 4),
+        ("Serves 6", 6),
+        ("Makes 12 muffins", 12),
+        ("4 to 6 servings", 4),         # a range takes the low end
+        ("about 3 liters", None),       # a volume yield has no serving count
+        ("one 9-inch pie", None),       # a size, not a count
+        ("", None),
+        (None, None),
+    ],
+)
+def test_parse_servings(value, expected):
+    assert ri.parse_servings(value) == expected
+
+
+VOLUME_YIELD_HTML = RECIPE_HTML.replace('"recipeYield":"4 servings"', '"recipeYield":"about 3 liters"')
+
+
+def test_import_volume_yield_stays_in_summary(monkeypatch):
+    monkeypatch.setattr(ri, "robots_allows", lambda url: True)
+    monkeypatch.setattr(ri, "fetch", lambda url: VOLUME_YIELD_HTML)
+    d = ri.import_from_url("https://src.example/recipe")
+    # No serving count to recover, so it defaults to 1 and the volume yield stays prose.
+    assert d["servings"] == 1 and "3 liters" in d["summary"]
 
 
 def test_import_no_jsonld_raises(monkeypatch):
