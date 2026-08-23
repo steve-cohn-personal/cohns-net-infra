@@ -155,6 +155,9 @@ class Class(Base):
     title: Mapped[str] = mapped_column(String(200))
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)      # short, Markdown
     description: Mapped[str | None] = mapped_column(Text, nullable=True)  # long, Markdown
+    # Products used in the class, each an Amazon affiliate link: [{name, url, note}].
+    # Stored raw (untagged) — the site injects the Associates tag at render (md.js).
+    tools: Mapped[list] = mapped_column(JSON, default=list, nullable=True)
     hero_image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     published: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, index=True)

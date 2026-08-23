@@ -190,8 +190,24 @@
       if (c.summary) root.appendChild(mdEl("p", "recipe-summary", c.summary, false));
       if (c.description) root.appendChild(mdEl("div", "recipe-notes", c.description, true));
 
-      // FTC + Amazon Associates: if the class body links to Amazon (e.g. a "tools I
-      // used" list), show the required disclosure right under it. Mirrors recipes.js.
+      // Tools used in the class — products, each an Amazon affiliate link. The name
+      // is rendered through md.js inline so the Associates tag, target=_blank and
+      // rel="sponsored" are applied automatically (URLs are stored raw).
+      if ((c.tools || []).length) {
+        root.appendChild(el("h2", {}, ["Tools I used"]));
+        var toolList = el("ul", { class: "class-tools" });
+        c.tools.forEach(function (t) {
+          if (!t || !t.name || !t.url) return;
+          var item = el("li", {}, [mdEl("span", "class-tool-name", "[" + t.name + "](" + t.url + ")", false)]);
+          if (t.note) item.appendChild(mdEl("span", "class-tool-note", t.note, false));
+          toolList.appendChild(item);
+        });
+        root.appendChild(toolList);
+      }
+
+      // FTC + Amazon Associates: if the class body links to Amazon (the tools list,
+      // or an Amazon link in the description), show the required disclosure right
+      // under it. Mirrors recipes.js.
       var links = root.querySelectorAll("a[href]");
       for (var li = 0; li < links.length; li++) {
         if (window.cohnsMD && window.cohnsMD.isAmazonUrl(links[li].href)) {

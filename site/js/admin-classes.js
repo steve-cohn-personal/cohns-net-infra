@@ -70,6 +70,39 @@
     return el("div", { class: "form-row" }, [el("span", {}, ["Photo — upload replaces the URL below"]), el("div", { class: "hero-upload" }, [file, status, preview])]);
   }
 
+  // A repeatable name/url/note editor for a class's tools (Amazon affiliate links).
+  // Returns a form-row element with a _collect() that yields the [{name,url,note}]
+  // array, dropping fully-empty rows. URLs are stored raw — the site tags them.
+  function toolsEditor(initial) {
+    var rows = el("div", {});
+    function addRow(t) {
+      t = t || {};
+      var name = el("input", { class: "form-input", placeholder: "Name", value: t.name || "" });
+      var url = el("input", { class: "form-input", placeholder: "https://amzn.to/…", value: t.url || "" });
+      var note = el("input", { class: "form-input", placeholder: "Note (optional)", value: t.note || "" });
+      var rm = el("button", { type: "button", class: "authbar-btn" }, ["Remove"]);
+      var row = el("div", { class: "tool-edit-row" }, [name, url, note, rm]);
+      rm.addEventListener("click", function () { rows.removeChild(row); });
+      row._get = function () {
+        var n = name.value.trim(), u = url.value.trim();
+        if (!n && !u) return null;
+        return { name: n, url: u, note: note.value.trim() || null };
+      };
+      rows.appendChild(row);
+    }
+    (initial || []).forEach(addRow);
+    var add = el("button", { type: "button", class: "btn btn-plain" }, ["+ Add tool"]);
+    add.addEventListener("click", function () { addRow(null); });
+    var wrap = el("div", { class: "form-row" }, [
+      el("span", {}, ["Tools I used (Amazon links — the affiliate tag is added automatically)"]),
+      rows, add,
+    ]);
+    wrap._collect = function () {
+      return [].slice.call(rows.children).map(function (r) { return r._get ? r._get() : null; }).filter(Boolean);
+    };
+    return wrap;
+  }
+
   // --- class editor ---------------------------------------------------------
 
   function openClassEditor(ctx, cls) {
@@ -90,6 +123,8 @@
     form.appendChild(field("Title", f.title));
     form.appendChild(field("Summary (short, Markdown)", f.summary));
     form.appendChild(field("Description (Markdown)", f.description));
+    var tools = toolsEditor(cls.tools);
+    form.appendChild(tools);
     form.appendChild(imageUploadRow(f.hero_image_url));
     form.appendChild(field("Photo URL", f.hero_image_url));
     form.appendChild(field("Sort order", f.sort_order));
@@ -104,6 +139,7 @@
       var payload = {
         slug: f.slug.value.trim(), title: f.title.value.trim(),
         summary: f.summary.value.trim() || null, description: f.description.value.trim() || null,
+        tools: tools._collect(),
         hero_image_url: f.hero_image_url.value.trim() || null,
         sort_order: parseInt(f.sort_order.value, 10) || 0, published: f.published.checked,
       };

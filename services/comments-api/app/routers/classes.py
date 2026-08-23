@@ -87,7 +87,8 @@ async def list_classes(session: AsyncSession = Depends(get_session)):
     for c in classes:
         sessions = [await _session_public(session, s) for s in await _upcoming(session, c.id)]
         out.append(ClassPublic(slug=c.slug, title=c.title, summary=c.summary,
-                               description=c.description, hero_image_url=c.hero_image_url, sessions=sessions))
+                               description=c.description, tools=c.tools or [],
+                               hero_image_url=c.hero_image_url, sessions=sessions))
     return out
 
 
@@ -98,7 +99,8 @@ async def get_class(slug: str, session: AsyncSession = Depends(get_session)):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "class not found")
     sessions = [await _session_public(session, s) for s in await _upcoming(session, c.id)]
     return ClassPublic(slug=c.slug, title=c.title, summary=c.summary,
-                       description=c.description, hero_image_url=c.hero_image_url, sessions=sessions)
+                       description=c.description, tools=c.tools or [],
+                       hero_image_url=c.hero_image_url, sessions=sessions)
 
 
 # --- Public signup + request (no login; rate-limited; honeypot) -------------
@@ -172,7 +174,7 @@ async def _class_admin(session: AsyncSession, c: Class) -> ClassAdmin:
     )
     sessions = [await _session_public(session, s) for s in result.scalars()]
     return ClassAdmin(slug=c.slug, title=c.title, summary=c.summary, description=c.description,
-                      hero_image_url=c.hero_image_url, sessions=sessions, id=c.id,
+                      tools=c.tools or [], hero_image_url=c.hero_image_url, sessions=sessions, id=c.id,
                       published=c.published, sort_order=c.sort_order)
 
 
