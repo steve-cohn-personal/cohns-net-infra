@@ -95,6 +95,12 @@ main {
   #engineering { grid-column: 1 / -1; }
 }
 
+/* The two-column grid above is for card pages (home, /foodie). A sub-page whose
+   <main> holds a single content block (recipe/class lists and detail views, the
+   résumé, admin, the gallery) would otherwise be trapped in the left column with
+   the right half empty on desktop — so let a lone child span the full width. */
+main > :only-child { grid-column: 1 / -1; }
+
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
