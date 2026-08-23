@@ -5,7 +5,10 @@ the real DB-backed API instead of the static `recipes-sample.json` fallback. The
 service (`services/comments-api`) is fully built and CI-tested but has **never been
 applied** — the always-on cost was the gate.
 
-**Cost decision: approved at ~$26/mo (2026-07-30).**
+**Cost decision: approved at ~$26/mo (2026-07-30).** That estimate was low — it predates
+AWS's 2024 public-IPv4 charge, and the real floor is **~$37/mo** (see the table below).
+Measured prod spend and the re-platform options are in
+[`comments-api-cost.md`](comments-api-cost.md).
 
 ## Current state
 
@@ -34,16 +37,26 @@ on first boot** — no separate migration step.
 | Item | Monthly | Notes |
 | --- | --- | --- |
 | ALB | ~$16–18 | fixed, always-on — the dominant cost |
+| Public IPv4 | ~$11 | 3 addresses @ $0.005/hr: two on the ALB (one per AZ, and an ALB needs ≥2) plus one on the Fargate task |
 | Fargate | ~$9 | 1 task, 0.25 vCPU / 0.5 GB (module minimum; `desired_count = 1`) |
-| Aurora Serverless v2 | ~$0 idle | dev `min_acu = 0` → scale-to-zero; pennies/hr only while serving |
+| Aurora Serverless v2 | ~$0 idle | dev `min_acu = 0` → scale-to-zero; verified ~0.05 ACU average in prod |
 | NAT gateway | $0 | network module deliberately omits it (tasks in public subnets) |
 | ACM / Route53 / ECR | ~$0 | negligible |
-| **Fixed floor** | **~$25–27/mo** | independent of traffic |
+| **Fixed floor** | **~$37/mo** | independent of traffic |
 
-If this floor ever becomes unwelcome, the cheaper alternative is re-platforming the
-read path to **API Gateway HTTP API + Lambda** (like the photo library — no ALB, no
-always-on task, ~$0 idle). That is a re-architecture of the FastAPI service, not this
-deploy.
+The IPv4 line is the price of the "public subnets instead of a NAT gateway" design in
+`modules/network`. The trade is still right — ~$11/mo of IPv4 beats ~$32/mo of NAT — it
+just stopped being free when AWS began charging for public IPv4 in 2024, after this
+module was written.
+
+If this floor ever becomes unwelcome, see [`comments-api-cost.md`](comments-api-cost.md)
+for the priced options. Note that the obvious move — "do what the photo library does" —
+**does not transfer**: that Lambda is cheap because it has no `vpc_config` and only
+touches S3, whereas this service needs Aurora in private subnets. A VPC-attached Lambda
+has no public IP and there is no NAT, so it would need interface endpoints for Secrets
+Manager, Cognito JWKS, STS and SNS at ~$7.30/mo each per AZ — more than the ALB it
+replaced. The realistic option is dropping the ALB while keeping Fargate (API Gateway
+HTTP API + VPC Link → Cloud Map → ECS, ~$25/mo saved, no application change).
 
 ## Config gaps to fix first
 
