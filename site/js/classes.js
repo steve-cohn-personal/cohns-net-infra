@@ -190,6 +190,18 @@
       if (c.summary) root.appendChild(mdEl("p", "recipe-summary", c.summary, false));
       if (c.description) root.appendChild(mdEl("div", "recipe-notes", c.description, true));
 
+      // FTC + Amazon Associates: if the class body links to Amazon (e.g. a "tools I
+      // used" list), show the required disclosure right under it. Mirrors recipes.js.
+      var links = root.querySelectorAll("a[href]");
+      for (var li = 0; li < links.length; li++) {
+        if (window.cohnsMD && window.cohnsMD.isAmazonUrl(links[li].href)) {
+          root.appendChild(el("p", { class: "affiliate-disclosure" }, [
+            "As an Amazon Associate I earn from qualifying purchases, at no extra cost to you.",
+          ]));
+          break;
+        }
+      }
+
       if ((c.sessions || []).length) {
         root.appendChild(el("h2", {}, ["Upcoming sessions"]));
         c.sessions.forEach(function (s) { root.appendChild(sessionBlock(slug, s)); });
