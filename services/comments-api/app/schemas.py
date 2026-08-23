@@ -1,3 +1,4 @@
+import re
 import uuid
 from datetime import datetime
 
@@ -174,6 +175,23 @@ class UploadPresignResponse(BaseModel):
 _EMAIL = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
 
 
+class ToolItem(BaseModel):
+    """One product used in a class — an Amazon affiliate link. The URL is stored
+    raw (no `?tag=`); the site injects the Associates tag at render time (md.js)."""
+
+    name: str = Field(min_length=1, max_length=200)
+    url: str = Field(min_length=1, max_length=2000)
+    note: str | None = Field(default=None, max_length=500)
+
+    @field_validator("url")
+    @classmethod
+    def _http_url(cls, v: str) -> str:
+        v = v.strip()
+        if not re.match(r"^https?://", v, re.IGNORECASE):
+            raise ValueError("url must start with http:// or https://")
+        return v
+
+
 class ClassWrite(BaseModel):
     """Create/update payload for a class (moderator only)."""
 
@@ -181,6 +199,7 @@ class ClassWrite(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     summary: str | None = Field(default=None, max_length=2000)
     description: str | None = Field(default=None, max_length=20000)
+    tools: list[ToolItem] = Field(default_factory=list, max_length=100)
     hero_image_url: str | None = Field(default=None, max_length=500)
     published: bool = False
     sort_order: int = 0
@@ -217,6 +236,7 @@ class ClassPublic(BaseModel):
     title: str
     summary: str | None
     description: str | None
+    tools: list[ToolItem] = Field(default_factory=list)
     hero_image_url: str | None
     sessions: list[ClassSessionPublic] = Field(default_factory=list)
 

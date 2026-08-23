@@ -102,6 +102,43 @@ async def test_request_persists_and_lists(client):
     assert len(reqs) == 1 and reqs[0]["name"] == "Sam" and reqs[0]["class_id"] == c["id"]
 
 
+async def test_tools_round_trip_public(client):
+    r = await client.post("/admin/classes", json={
+        "slug": "cocktails", "title": "Cocktails", "published": True,
+        "tools": [{"name": "Jigger", "url": "https://amzn.to/abc", "note": "measure from above"},
+                  {"name": "Blender", "url": "https://amzn.to/def"}],
+    }, headers=auth(MOD()))
+    assert r.status_code == 201
+    detail = (await client.get("/classes/cocktails")).json()
+    assert [t["name"] for t in detail["tools"]] == ["Jigger", "Blender"]
+    assert detail["tools"][0]["url"] == "https://amzn.to/abc"  # stored raw, untagged
+    assert detail["tools"][0]["note"] == "measure from above"
+    assert detail["tools"][1]["note"] is None
+
+
+async def test_tools_default_empty(client):
+    await _make_class(client, "paella")
+    assert (await client.get("/classes/paella")).json()["tools"] == []
+
+
+async def test_tool_url_must_be_http(client):
+    r = await client.post("/admin/classes", json={
+        "slug": "bad", "title": "Bad", "published": True,
+        "tools": [{"name": "X", "url": "javascript:alert(1)"}],
+    }, headers=auth(MOD()))
+    assert r.status_code == 422
+
+
+async def test_tools_updated_via_put(client):
+    c = await _make_class(client, "paella")
+    r = await client.put(f"/admin/classes/{c['id']}", json={
+        "slug": "paella", "title": "Paella", "published": True,
+        "tools": [{"name": "Paella pan", "url": "https://amzn.to/pan"}],
+    }, headers=auth(MOD()))
+    assert r.status_code == 200
+    assert (await client.get("/classes/paella")).json()["tools"][0]["name"] == "Paella pan"
+
+
 async def test_delete_class_cascades_sessions(client):
     c = await _make_class(client)
     await _add_session(client, c["id"])
