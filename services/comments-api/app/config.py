@@ -34,6 +34,14 @@ class Settings(BaseSettings):
     # pause for a near-$0 idle bill. Worth it for a light-traffic service.
     db_nullpool: bool = False
 
+    # TLS to Postgres. Aurora PostgreSQL 16+ ships rds.force_ssl=1, so the server
+    # rejects unencrypted connections ("no pg_hba.conf entry ... no encryption").
+    # asyncpg's own default is "prefer", which silently DOWNGRADES to plaintext and
+    # is then refused — so default to "require" here: encrypted unless deliberately
+    # turned off. Set "disable" for a local plaintext Postgres (see docker-compose).
+    # Ignored for SQLite.
+    db_sslmode: str = "require"
+
     # JWT verification. HS256 with a shared secret is the local/first-commit mode.
     # Setting jwks_url (a Cognito user-pool JWKS endpoint) switches to RS256 later
     # without touching the rest of the app — see app/auth.py.

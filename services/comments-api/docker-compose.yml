@@ -22,6 +22,8 @@ services:
         condition: service_healthy
     environment:
       COMMENTS_DATABASE_URL: postgresql+asyncpg://comments:comments@db:5432/comments
+      # The local postgres container serves plaintext; prod requires TLS.
+      COMMENTS_DB_SSLMODE: disable
       COMMENTS_JWT_SECRET: local-dev-secret-at-least-32-bytes-long!!
       # Dev convenience — create tables on boot. In prod this is false and the
       # migrations run as an init step (`alembic upgrade head`).

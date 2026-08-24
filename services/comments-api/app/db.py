@@ -8,8 +8,15 @@ from app.config import get_settings
 _settings = get_settings()
 _url = _settings.build_database_url()
 
-# SQLite needs check_same_thread off; Postgres ignores connect_args here.
-_connect_args = {"check_same_thread": False} if _url.startswith("sqlite") else {}
+# SQLite needs check_same_thread off. For Postgres, pass the TLS mode explicitly:
+# asyncpg defaults to "prefer", which falls back to an unencrypted connection that
+# Aurora (rds.force_ssl=1) then rejects — a failure that only surfaces once the
+# instance restarts and the dynamic parameter takes effect. See Settings.db_sslmode.
+_connect_args = (
+    {"check_same_thread": False}
+    if _url.startswith("sqlite")
+    else {"ssl": _settings.db_sslmode}
+)
 
 # NullPool holds no idle connections (lets Aurora auto-pause); otherwise pool and
 # pre-ping to weed out stale connections.
