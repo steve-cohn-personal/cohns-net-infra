@@ -58,16 +58,20 @@ def test_credentials_read_from_secrets_manager():
 
 async def test_credentials_are_cached_and_refetched_on_refresh():
     """The cache is what makes a rotation survivable: reused for every connection
-    until one is refused, then re-read exactly once."""
+    until one is refused, then re-read exactly once.
+
+    Settings is a pydantic model, which refuses attribute assignment for anything
+    that is not a field — so patch the method on the class, not the instance.
+    """
     calls = []
 
-    def fake_fetch():
+    def fake_fetch(_self):
         calls.append(None)
         return ("dbadmin", f"pw{len(calls)}")
 
     with (
         patch.object(db, "_credentials", None),
-        patch.object(db._settings, "fetch_db_credentials", fake_fetch),
+        patch.object(Settings, "fetch_db_credentials", fake_fetch),
     ):
         assert await db._get_credentials(refresh=False) == ("dbadmin", "pw1")
         assert await db._get_credentials(refresh=False) == ("dbadmin", "pw1")
