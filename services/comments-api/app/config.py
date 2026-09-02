@@ -18,9 +18,9 @@ class Settings(BaseSettings):
 
     # Production database via Secrets Manager. When db_secret_arn is set, the
     # username/password are read from that secret (the RDS-managed master secret)
-    # at startup and combined with the host/port/name below — so no credential is
-    # ever in env, a tfvars, or an image. host/port/name come from the cluster
-    # endpoint (live/data outputs), which are not secret.
+    # on every new connection and combined with the host/port/name below — so no
+    # credential is ever in env, a tfvars, or an image. host/port/name come from
+    # the cluster endpoint (live/data outputs), which are not secret.
     db_secret_arn: str | None = None
     db_host: str | None = None
     db_port: int = 5432
@@ -103,27 +103,37 @@ class Settings(BaseSettings):
     # turn it off entirely.
     metrics_enabled: bool = True
 
-    def build_database_url(self) -> str:
-        """The effective async SQLAlchemy URL.
+    def fetch_db_credentials(self) -> tuple[str, str]:
+        """Read the current username/password from the RDS-managed master secret.
 
-        With db_secret_arn set, fetch the RDS-managed credentials from Secrets
-        Manager and assemble a Postgres URL; otherwise use database_url as-is.
+        Called for each new database connection (app/db.py), not once at import.
+        That secret rotates on a schedule, and a process still holding the password
+        it read at boot fails every query the moment rotation happens — which is
+        what took the API down on 2026-08-31, with the ALB none the wiser because
+        it was health-checking /healthz.
+
         boto3 is imported lazily so local/test runs never need it.
         """
-        if not self.db_secret_arn:
-            return self.database_url
-
         import json
-        from urllib.parse import quote
 
         import boto3
 
         client = boto3.client("secretsmanager", region_name=self.aws_region)
         secret = json.loads(client.get_secret_value(SecretId=self.db_secret_arn)["SecretString"])
-        user = quote(secret["username"], safe="")
-        password = quote(secret["password"], safe="")
+        return secret["username"], secret["password"]
+
+    def build_database_url(self) -> str:
+        """The effective async SQLAlchemy URL.
+
+        With db_secret_arn set, the URL carries only dialect/host/port/database —
+        the credentials are supplied per connection by app/db.py, so nothing here
+        goes stale. Otherwise use database_url as-is.
+        """
+        if not self.db_secret_arn:
+            return self.database_url
+
         host = self.db_host or ""
-        return f"postgresql+asyncpg://{user}:{password}@{host}:{self.db_port}/{self.db_name}"
+        return f"postgresql+asyncpg://{host}:{self.db_port}/{self.db_name}"
 
 
 @lru_cache

@@ -82,6 +82,14 @@ module "service" {
   desired_count    = var.desired_count
   cpu_architecture = var.cpu_architecture
 
+  # The ALB checks readiness, not liveness. /healthz only proves the process is
+  # up; /readyz opens a database connection. A task that still answers /healthz
+  # but can no longer reach the database stays in service forever behind the
+  # former — which is how the API served 500s from 2026-08-31 until it was
+  # restarted by hand. Checking /readyz takes that task out of rotation and lets
+  # ECS replace it with one that works.
+  health_check_path = "/readyz"
+
   # The app reads its DB password from Secrets Manager itself (task role below);
   # only non-secret settings are passed as plain env.
   environment = {
