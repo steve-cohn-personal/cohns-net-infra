@@ -17,11 +17,40 @@ Measured prod spend and the re-platform options are in
 | `shared-services` | Cognito (JWKS / issuer / client), ECR repo | applied |
 | `live/site` dev | delegated `dev.cohns.net` zone (`Z09826921EA4GXC49P5MT`) | applied |
 | `live/data` dev | VPC + Aurora Serverless v2 + DB secret | **verify applied** |
-| ECR image | `004161356168.dkr.ecr.us-west-2.amazonaws.com/cohns/comments-api:latest` | **verify present** |
+| ECR image | `…/cohns/comments-api:<commit sha>` — pinned, never `:latest` (see below) | **verify present** |
 
 The two "verify" rows need one `aws sso login --profile admin` to confirm before the
 apply. The image is built and pushed by `.github/workflows/container-build.yml` on
-pushes to `main` touching `services/comments-api/**`.
+pushes to `main` touching `services/comments-api/**` — note that path filter: most
+commits on `main` build no image at all, so "the newest image" is usually older than
+`origin/main`.
+
+## Deploying a new API image
+
+**Use `scripts/deploy-api.sh`; never set `container_image` by hand, and never to a
+moving tag.**
+
+```bash
+./scripts/deploy-api.sh dev              # newest built image
+./scripts/deploy-api.sh prod             # newest built image, with a confirmation prompt
+./scripts/deploy-api.sh prod <sha>       # a specific commit
+```
+
+The script resolves the commit, **refuses to deploy a sha with no successful
+container-build**, rewrites `container_image` in that environment's tfvars, applies,
+waits for the ECS deployment to stabilise, and checks `/readyz`.
+
+`container_image` is validated to be a full 40-character commit sha
+(`live/compute/variables.tf`). That is deliberate, and the reason is worth keeping in
+mind: **a moving tag is a constant to Terraform.** `:latest` never changes as a
+string, so there is no diff, so no new task-definition revision, so no deployment —
+the service only picks up a new image when something happens to restart it. That is
+how prod came to run a month-old image and, when the database secret rotated on
+2026-09-07, served 500s for a week. The fix for that failure had been merged, built,
+and never deployed. See issue #67.
+
+Because ECR lives in the shared-services account that the laptop SSO profiles cannot
+read, the script verifies the image through its GitHub build rather than the registry.
 
 ## What applying `live/compute` (dev) creates
 
@@ -68,7 +97,7 @@ HTTP API + VPC Link → Cloud Map → ECS, ~$25/mo saved, no application change)
 
 ## Execution plan
 
-1. Confirm the ⚠️ dependencies (`live/data` dev applied; `:latest` image in ECR).
+1. Confirm the ⚠️ dependencies (`live/data` dev applied; a built image in ECR).
    Push `services/comments-api` to `main` if the image is missing (CI builds it).
 2. Apply `live/data` dev if not already — VPC + Aurora + DB secret.
 3. Add the dev `cors_origins` to `compute/env/dev.tfvars`.

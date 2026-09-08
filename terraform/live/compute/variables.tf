@@ -37,8 +37,19 @@ variable "domain_name" {
 }
 
 variable "container_image" {
-  description = "Full comments-api image reference, e.g. <ecr>/cohns/comments-api:<tag>."
+  description = "Full comments-api image reference, pinned to a commit sha, e.g. <ecr>/cohns/comments-api:<40-char sha>. Set it with scripts/deploy-api.sh, not by hand."
   type        = string
+
+  # A moving tag (:latest) is a constant as far as Terraform is concerned: the
+  # string never changes, so there is no diff, so no new task-definition revision
+  # and no deployment. The service then only picks up a new image if something
+  # happens to restart it — which is how prod ran a month-old image through the
+  # 2026-09-07 outage. Pinning to the commit makes each deploy a real diff and
+  # makes the running commit readable from state. See issue #67.
+  validation {
+    condition     = can(regex("^[^:]+:[0-9a-f]{40}$", var.container_image))
+    error_message = "container_image must be pinned to a full 40-character commit sha, not a moving tag like :latest. Use scripts/deploy-api.sh <env> to set it."
+  }
 }
 
 variable "desired_count" {
