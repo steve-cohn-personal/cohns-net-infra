@@ -8,78 +8,126 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/css/main.css">
 </head>
-<body>
-  <header class="masthead">
+<body class="page--home">
+  <header class="masthead masthead--home">
     <div class="wrap">
       <div id="authbar" class="authbar"></div>
-      <p class="eyebrow">cohns.net</p>
-      <h1>Steven M. Cohn</h1>
-      <p class="tagline">DevOps &amp; Site Reliability Engineer — Niwot, Colorado</p>
-      <p class="build-note">
-        This site is built and deployed entirely from
-        <a href="https://github.com/steve-cohn-personal/cohns-net-infra">a public Terraform repository</a>.
-        The infrastructure is the portfolio.
-      </p>
+      <div class="masthead-inner">
+        <div class="masthead-text">
+          <p class="eyebrow">cohns.net</p>
+          <h1>Steven M. Cohn</h1>
+          <p class="tagline">DevOps &amp; Site Reliability Engineer — Niwot, Colorado</p>
+          <p class="build-note">
+            This site is built and deployed entirely from
+            <a href="https://github.com/steve-cohn-personal/cohns-net-infra">a public Terraform repository</a>.
+            The infrastructure is the portfolio.
+          </p>
+        </div>
+        <img class="headshot" src="/img/headshot.jpeg" width="200" height="200"
+             alt="Steven M. Cohn">
+      </div>
     </div>
   </header>
 
-  <main class="wrap">
-    <section class="card" id="engineering">
-      <h2>Engineering</h2>
-      <p>
+  <main class="wrap home-grid">
+    <section class="panel" id="engineering">
+      <div class="panel-head">
+        <p class="panel-kicker">The work</p>
+        <h2>Engineering</h2>
+      </div>
+      <p class="panel-lead">
         Thirty years of building and running infrastructure — from Unix systems and Cisco
         networks to AWS organizations, Terraform module libraries, and Kubernetes clusters
         serving billions of requests a day.
       </p>
-      <ul class="skills">
-        <li><span>Cloud</span> AWS, Terraform, Terragrunt, CloudFormation</li>
-        <li><span>Orchestration</span> Ansible, Puppet, Chef, Salt</li>
-        <li><span>Containers</span> Docker, Kubernetes, Helm, EKS, ECS</li>
-        <li><span>CI/CD</span> GitHub Actions, CircleCI, Jenkins</li>
-        <li><span>Data</span> Postgres, MySQL, Oracle, Mongo</li>
-        <li><span>Observability</span> Datadog, Splunk, Prometheus, Grafana</li>
-      </ul>
-      <p class="links">
-        <a href="/resume/">Résumé →</a>
-        <a href="https://github.com/steve-cohn-personal/cohns-net-infra">Infrastructure repository</a>
-        <a href="https://www.linkedin.com/in/steven-cohn-605b465/">LinkedIn</a>
-        <a href="mailto:steve@cohns.net">steve@cohns.net</a>
+
+      <div class="skill-groups">
+        <div>
+          <p class="skill-group-label">Cloud</p>
+          <ul class="skill-pills">
+            <li>AWS</li><li>Terraform</li><li>Terragrunt</li><li>CloudFormation</li>
+          </ul>
+        </div>
+        <div>
+          <p class="skill-group-label">Orchestration</p>
+          <ul class="skill-pills">
+            <li>Ansible</li><li>Puppet</li><li>Chef</li><li>Salt</li>
+          </ul>
+        </div>
+        <div>
+          <p class="skill-group-label">Containers</p>
+          <ul class="skill-pills">
+            <li>Docker</li><li>Kubernetes</li><li>Helm</li><li>EKS</li><li>ECS</li>
+          </ul>
+        </div>
+        <div>
+          <p class="skill-group-label">CI/CD</p>
+          <ul class="skill-pills">
+            <li>GitHub Actions</li><li>CircleCI</li><li>Jenkins</li>
+          </ul>
+        </div>
+        <div>
+          <p class="skill-group-label">Data</p>
+          <ul class="skill-pills">
+            <li>Postgres</li><li>MySQL</li><li>Oracle</li><li>Mongo</li>
+          </ul>
+        </div>
+        <div>
+          <p class="skill-group-label">Observability</p>
+          <ul class="skill-pills">
+            <li>Datadog</li><li>Splunk</li><li>Prometheus</li><li>Grafana</li>
+          </ul>
+        </div>
+      </div>
+
+      <p class="pill-row">
+        <a class="pill pill--solid" href="/resume/">Résumé →</a>
+        <a class="pill pill--outline" href="https://github.com/steve-cohn-personal/cohns-net-infra">Infrastructure repository</a>
+        <a class="pill pill--outline" href="https://www.linkedin.com/in/steven-cohn-605b465/">LinkedIn</a>
+        <a class="pill pill--outline" href="mailto:steve@cohns.net">steve@cohns.net</a>
       </p>
+
+      <div class="subpanel" id="observability">
+        <h3>Observability</h3>
+        <p>
+          This site watches itself. Live uptime, latency, and cost dashboards — global
+          synthetic probes and CloudWatch, all defined as Terraform, served from Grafana Cloud
+          on the free tier. You can watch the database scale to zero and the bill go with it.
+        </p>
+        <p><a class="textlink" href="/observability/">Open the live dashboards →</a></p>
+      </div>
     </section>
 
-    <section class="card" id="observability">
-      <h2>Observability</h2>
-      <p>
-        This site watches itself. Live uptime, latency, and cost dashboards — global
-        synthetic probes and CloudWatch, all defined as Terraform, served from Grafana Cloud
-        on the free tier. You can watch the database scale to zero and the bill go with it.
-      </p>
-      <p class="links"><a href="/observability/">Open the live dashboards →</a></p>
-    </section>
-
-    <section class="card" id="foodie">
-      <h2>I'm a foodie</h2>
-      <p>
+    <section class="panel panel--foodie" id="foodie">
+      <div class="panel-head">
+        <p class="panel-kicker">The other half</p>
+        <h2>I'm a foodie</h2>
+      </div>
+      <p class="panel-lead">
         Recipes and video from the cooking I love, plus hands-on classes and
         workshops for groups of 1 to 100.
       </p>
-      <p class="links"><a href="/foodie/">Recipes &amp; classes →</a></p>
+
+      <img class="panel-photo" src="/img/beet-salad.jpg"
+           alt="An overhead view of a plate of mixed baby greens with red and golden beet wedges and crumbled goat cheese">
+
+      <p class="pill-row">
+        <a class="pill pill--solid-2" href="/foodie/">Recipes &amp; classes →</a>
+      </p>
+
+      <div class="subpanel" id="family">
+        <h3>Family</h3>
+        <p>A private photo library for family. Access by invitation.</p>
+        <p><a class="textlink textlink--2" href="/family/">Open the family library →</a></p>
+      </div>
     </section>
 
-    <section class="card" id="family">
-      <h2>Family</h2>
-      <p>
-        A private photo library for family. Access by invitation.
-      </p>
-      <p class="links"><a href="/family/">Open the family library →</a></p>
-    </section>
-
-    <section class="card" id="contact">
-      <h2>Say hello</h2>
-      <p>
-        Comments and conversation will live here.
-      </p>
-      <p class="placeholder">Coming soon.</p>
+    <section class="hello-strip" id="contact">
+      <div class="hello-strip-text">
+        <h2>Say hello</h2>
+        <p>Comments and conversation will live here.</p>
+      </div>
+      <p class="soon">Coming soon</p>
     </section>
   </main>
 

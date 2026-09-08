@@ -2,25 +2,44 @@
    Kept in an external file rather than inline because the CloudFront CSP set in
    modules/static-site forbids inline styles. */
 
-:root {
-  --bg: #0f1115;
-  --surface: #171a21;
-  --border: #262b35;
-  --text: #e6e8ec;
-  --muted: #9aa3b2;
-  --accent: #5eb0ef;
-  --max: 62rem;
-}
+/* --- design tokens ---------------------------------------------------------
+   Light-first (warm cream), per docs/handoff-home-and-foodie.md §0/§2. The
+   previous dark :root and its `prefers-color-scheme: light` counterpart are
+   deliberately gone: the site has one identity, not two. The @media print block
+   at the end still forces its own ink-on-white values.
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #fbfbfc;
-    --surface: #ffffff;
-    --border: #e3e6ea;
-    --text: #1a1d23;
-    --muted: #5d6673;
-    --accent: #1f6fb2;
-  }
+   Accent contrast rule (§7.3): --accent / --accent-2 measure ~3:1 on cream, so
+   they carry FILLS, borders, and large type only. Anything at paragraph size —
+   links, body copy, small labels — uses the -ink pair, which clears 4.5:1.
+   The -ink tokens double as the fill for solid buttons: the artboard's --accent
+   fill under a near-white label measures 3.30:1 and fails AA, so solid pills sit
+   on -ink (6.22:1) and darken to -ink-press on hover. */
+
+:root {
+  --bg: #f5ead8;            /* cream page ground */
+  --surface: #ebddc5;       /* sand panels, cards */
+  --border: #c0b6a5;        /* hairlines, outlined controls */
+  --text: #201e1d;
+  --muted: #645c50;
+
+  --accent: #c67139;        /* terracotta — the engineering voice */
+  --accent-ink: #8c491a;    /* accent at paragraph contrast; solid-pill fill */
+  --accent-press: #b2622d;  /* hover step for accent chrome */
+  --accent-ink-press: #6f3a14;
+  --accent-tint: #fff2eb;   /* warm pill fill */
+
+  --accent-2: #7a8a5e;      /* sage — the foodie voice */
+  --accent-2-ink: #56633f;
+  --accent-2-ink-press: #434e31;
+  --accent-2-tint: #e1eecc;
+
+  --pill-outline-hover: #e1d5bd;
+  --on-sage-body: #3d472b;  /* body copy on a sage ground */
+  --on-accent: #f9f4ed;     /* label on a terracotta fill */
+  --on-accent-2: #f0fae1;   /* label on a sage fill */
+
+  --max: 62rem;
+  --max-wide: 67.5rem;      /* home + /foodie: wider than the prose measure */
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -32,6 +51,11 @@ body {
   font: 16px/1.65 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+/* One themed focus ring everywhere (§7.7) — never the browser default. */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+::selection { background: var(--accent-tint); }
 
 .wrap {
   max-width: var(--max);
@@ -59,7 +83,7 @@ body {
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .masthead h1 {
@@ -92,7 +116,6 @@ main {
 
 @media (min-width: 48rem) {
   main { grid-template-columns: repeat(2, 1fr); }
-  #engineering { grid-column: 1 / -1; }
 }
 
 /* The two-column grid above is for card pages (home, /foodie). A sub-page whose
@@ -160,7 +183,7 @@ main > :only-child { grid-column: 1 / -1; }
 
 /* --- links --- */
 
-a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a { color: var(--accent-ink); text-decoration-thickness: 1px; text-underline-offset: 2px; }
 a:hover { text-decoration-thickness: 2px; }
 
 .links {
@@ -170,15 +193,20 @@ a:hover { text-decoration-thickness: 2px; }
   margin: 0;
   font-size: 0.925rem;
 }
-/* "Coming soon" badge (e.g. the Classes tile before the classes area ships). */
+/* "Coming soon" badge — a solid tint pill (§3). Note this is NOT .placeholder:
+   that class is the "Loading…" indicator on seven other pages and must stay a
+   quiet dashed outline. */
 .soon {
+  display: inline-block;
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--muted);
-  border: 1px dashed var(--border);
+  white-space: nowrap;
+  background: var(--accent-tint);
+  color: var(--accent-ink);
+  border: 0;
   border-radius: 999px;
-  padding: 0.2rem 0.75rem;
+  padding: 0.35rem 0.9rem;
 }
 
 /* --- footer --- */
@@ -193,7 +221,7 @@ footer {
 /* --- recipes --- */
 
 .masthead--sub { padding: 3rem 0 2rem; }
-.masthead--sub .eyebrow a { color: var(--accent); text-decoration: none; }
+.masthead--sub .eyebrow a { color: var(--accent-ink); text-decoration: none; }
 
 .recipe-grid {
   display: grid;
@@ -255,10 +283,10 @@ footer {
 .md-preview-body p { margin: 0 0 0.5rem; }
 .md-preview-body ul, .md-preview-body ol { margin: 0; padding-left: 1.4rem; }
 .md-preview-body li { margin: 0.2rem 0; }
-.md-preview-body a { color: var(--accent); }
+.md-preview-body a { color: var(--accent-ink); }
 
 /* Classes: sessions + signup/request forms on the class detail page. */
-.class-card-meta { color: var(--accent); font-size: 0.85rem; margin: 0.4rem 1.4rem 1.25rem; }
+.class-card-meta { color: var(--accent-ink); font-size: 0.85rem; margin: 0.4rem 1.4rem 1.25rem; }
 .recipe-card:not(.has-thumb) .class-card-meta { margin-left: 0; margin-right: 0; }
 .class-session {
   border: 1px solid var(--border);
@@ -272,8 +300,8 @@ footer {
 .class-form { max-width: 32rem; margin: 0.75rem 0 0; }
 /* Honeypot — kept off-screen (a class, since CSP style-src 'self' blocks inline styles). */
 .hp-field { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
-.form-status.is-ok { color: var(--accent); }
-.form-status.is-err { color: #c0392b; }
+.form-status.is-ok { color: var(--accent-ink); }
+.form-status.is-err { color: #ab2b1e; }  /* 5.07:1 on --surface; #c0392b was 4.06 */
 
 /* Class "tools I used": products used in a class, each an Amazon affiliate link.
    Two-column hairline list on desktop, one column below — the design handoff's
@@ -288,7 +316,7 @@ footer {
   list-style: none;
 }
 .class-tools li { border-top: 1px solid var(--border); padding-top: 0.6rem; }
-.class-tool-name a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.class-tool-name a { color: var(--accent-ink); font-weight: 600; text-decoration: none; }
 .class-tool-name a:hover { text-decoration: underline; }
 .class-tool-note { display: block; color: var(--muted); font-size: 0.95rem; margin-top: 0.15rem; }
 
@@ -336,7 +364,7 @@ footer {
   transition: border-color 0.15s ease, color 0.15s ease;
 }
 .chip:hover { border-color: var(--accent); }
-.chip.is-active { border-color: var(--accent); color: var(--accent); }
+.chip.is-active { border-color: var(--accent); color: var(--accent-ink); }
 
 .recipe-group > h2 {
   font-size: 0.8rem;
@@ -354,7 +382,7 @@ footer {
   font-size: 0.78rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-ink);
   text-decoration: none;
 }
 .recipe-category a:hover { text-decoration: underline; }
@@ -363,7 +391,7 @@ footer {
 .recipe-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 1rem; }
 .recipe-tag {
   font-size: 0.8rem;
-  color: var(--accent);
+  color: var(--accent-ink);
   text-decoration: none;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -384,7 +412,7 @@ footer {
 .recipe-notes h4 { font-size: 1rem; margin: 1.25rem 0 0.4rem; }
 .recipe-notes ul, .recipe-notes ol { padding-left: 1.4rem; margin: 0 0 1rem; }
 .recipe-notes li { margin: 0.3rem 0; }
-.recipe-notes a, .recipe-summary a { color: var(--accent); }
+.recipe-notes a, .recipe-summary a { color: var(--accent-ink); }
 .recipe-notes code, .recipe-summary code {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -442,7 +470,7 @@ footer {
   width: 2.2rem;
   cursor: pointer;
 }
-.servings-step:hover { color: var(--accent); }
+.servings-step:hover { color: var(--accent-ink); }
 .servings-input {
   width: 3.5rem;
   text-align: center;
@@ -462,7 +490,7 @@ footer {
 .servings-reset {
   border: none;
   background: none;
-  color: var(--accent);
+  color: var(--accent-ink);
   font-size: 0.9rem;
   cursor: pointer;
   padding: 0;
@@ -495,7 +523,7 @@ footer {
 
 .authbar-btn {
   font: inherit;
-  color: var(--accent);
+  color: var(--accent-ink);
   background: transparent;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -609,7 +637,7 @@ footer {
 
 /* Recipe admin: import bar + editor form. */
 .admin-nav { margin: 0 0 1rem; }
-.admin-nav a { color: var(--accent); text-decoration: none; }
+.admin-nav a { color: var(--accent-ink); text-decoration: none; }
 
 .recipe-admin-bar {
   display: flex;
@@ -621,7 +649,7 @@ footer {
 .import-row { display: flex; gap: 0.5rem; flex: 1 1 24rem; }
 .import-row .form-input { flex: 1; }
 .btn-plain { color: var(--muted); }
-.btn-plain:hover { border-color: var(--accent); color: var(--accent); }
+.btn-plain:hover { border-color: var(--accent); color: var(--accent-ink); }
 
 .form-input {
   font: inherit;
@@ -709,7 +737,7 @@ textarea.form-input { resize: vertical; line-height: 1.5; }
   font-size: 0.7rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .o11y-preview__title {
   font-size: clamp(1.25rem, 3.5vw, 1.7rem);
@@ -724,7 +752,7 @@ textarea.form-input { resize: vertical; line-height: 1.5; }
 .o11y-preview__cta {
   margin-top: 0.4rem;
   font-weight: 600;
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .o11y-preview:hover .o11y-preview__cta { text-decoration: underline; }
 
@@ -736,7 +764,7 @@ textarea.form-input { resize: vertical; line-height: 1.5; }
   transform: translate(-50%, -50%);
   margin: 0;
 }
-.authbar-btn.is-on { border-color: var(--accent); color: var(--accent); }
+.authbar-btn.is-on { border-color: var(--accent); color: var(--accent-ink); }
 
 /* --- Résumé ------------------------------------------------------------- */
 
@@ -744,7 +772,7 @@ textarea.form-input { resize: vertical; line-height: 1.5; }
 
 .btn {
   font: inherit;
-  color: var(--accent);
+  color: var(--accent-ink);
   background: transparent;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -764,7 +792,7 @@ textarea.form-input { resize: vertical; line-height: 1.5; }
 .resume-name { font-size: clamp(1.6rem, 5vw, 2.2rem); font-weight: 700; line-height: 1.15; margin: 0; }
 .resume-label { color: var(--muted); margin: 0.35rem 0 0.75rem; }
 .resume-contact { display: flex; flex-wrap: wrap; gap: 0.35rem 1.1rem; margin: 0; }
-.resume-contact a { color: var(--accent); text-decoration: none; }
+.resume-contact a { color: var(--accent-ink); text-decoration: none; }
 .resume-contact a:hover { text-decoration: underline; }
 
 .resume-summary { color: var(--text); line-height: 1.6; margin: 0 0 2rem; max-width: 60ch; }
@@ -797,7 +825,13 @@ textarea.form-input { resize: vertical; line-height: 1.5; }
 /* Print / Save-as-PDF: drop the site chrome, flatten the card, force light ink on
    white so it doesn't burn a page of toner in dark mode. The résumé body is the page. */
 @media print {
-  :root { --bg: #fff; --surface: #fff; --text: #111; --muted: #444; --accent: #111; --border: #bbb; }
+  :root {
+    --bg: #fff; --surface: #fff; --text: #111; --muted: #444; --border: #bbb;
+    --accent: #111; --accent-ink: #111; --accent-press: #111; --accent-ink-press: #111;
+    --accent-2: #111; --accent-2-ink: #111; --accent-2-ink-press: #111;
+    --accent-tint: #fff; --accent-2-tint: #fff; --on-sage-body: #111;
+    --on-accent: #fff; --on-accent-2: #fff; --pill-outline-hover: #fff;
+  }
   body { background: #fff; color: #111; }
   .masthead, .authbar, .resume-controls, footer { display: none !important; }
   main.wrap { padding: 0; max-width: none; }
@@ -806,4 +840,243 @@ textarea.form-input { resize: vertical; line-height: 1.5; }
   a { color: #111; }
   .resume-section { break-inside: avoid; }
   .resume-project, .resume-role { break-inside: avoid; }
+}
+
+
+/* ===========================================================================
+   Home page and /foodie — docs/handoff-home-and-foodie.md §3 and §4.
+   Both run wider than the prose measure and separate their blocks by fill:
+   no rules, no shadows (§2 "Elevation: none").
+   =========================================================================== */
+
+.page--home .wrap,
+.page--foodie .wrap { max-width: var(--max-wide); }
+
+/* /foodie's masthead carries the same display voice as home, one step down (§4). */
+.page--foodie .masthead--sub h1 {
+  font-size: clamp(2.25rem, 6.5vw, 4rem);   /* 64px ceiling */
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+  font-weight: 800;
+}
+
+.page--home footer,
+.page--foodie footer { border-top: 0; }
+
+/* --- shared: pill buttons -------------------------------------------------- */
+
+.pill-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; }
+
+.pill {
+  display: inline-block;
+  font: inherit;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  padding: 0.55rem 1.1rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.pill--solid   { background: var(--accent-ink);   color: var(--on-accent); }
+.pill--solid:hover { background: var(--accent-ink-press); }
+.pill--solid-2 { background: var(--accent-2-ink); color: var(--on-accent-2); }
+.pill--solid-2:hover { background: var(--accent-2-ink-press); }
+.pill--outline { border-color: var(--border); color: var(--text); }
+.pill--outline:hover { background: var(--pill-outline-hover); }
+
+/* A link that reads as a link, not a button. */
+.textlink { color: var(--accent-ink); font-weight: 600; text-decoration: none; }
+.textlink:hover { text-decoration: underline; }
+.textlink--2 { color: var(--accent-2-ink); }
+
+/* --- home: masthead -------------------------------------------------------- */
+
+.masthead--home { border-bottom: 0; padding: 4rem 0 2.5rem; }
+
+.masthead-inner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2.5rem;
+}
+.masthead-text { min-width: 0; }
+
+.headshot {
+  flex: 0 0 auto;
+  width: 200px;
+  height: 200px;
+  border-radius: 999px;
+  object-fit: cover;
+  object-position: center 20%;
+}
+
+.masthead--home h1 {
+  font-size: clamp(2.5rem, 7vw, 4.25rem);   /* 68px ceiling */
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  font-weight: 800;
+}
+.masthead--home .tagline  { font-size: 1.3125rem; }
+.masthead--home .build-note { font-size: 1rem; max-width: 52ch; }
+
+@media (max-width: 48rem) {
+  .masthead-inner { flex-direction: column; gap: 1.75rem; }
+  .headshot { width: 132px; height: 132px; }
+}
+
+/* --- home: the two halves -------------------------------------------------- */
+
+.home-grid { gap: 1.5rem; align-items: start; padding-bottom: 3rem; }
+
+@media (min-width: 48rem) {
+  .home-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  background: var(--surface);
+  border-radius: 2rem;
+  padding: 2.75rem 2.5rem;
+}
+.panel > * { margin: 0; }
+.panel--foodie { background: var(--accent-2-tint); }
+
+.panel-head { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.panel-kicker {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+.panel--foodie .panel-kicker { color: var(--accent-2-ink); }
+
+.panel h2 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+
+.panel-lead { font-size: 1.0625rem; color: var(--text); }
+.panel--foodie .panel-lead { color: var(--on-sage-body); }
+
+/* Skills as pill tags — replaces the old .skills hairline list (§3). */
+.skill-groups { display: grid; gap: 1.1rem; }
+.skill-group-label {
+  margin: 0 0 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.skill-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.skill-pills li {
+  background: var(--accent-tint);
+  color: var(--accent-ink);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  padding: 5px 13px;
+  border-radius: 999px;
+}
+
+.panel-photo {
+  display: block;
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+  border-radius: 1.5rem;
+}
+
+.subpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  background: var(--bg);
+  border-radius: 1.5rem;
+  padding: 1.75rem;
+}
+.subpanel > * { margin: 0; }
+.panel--foodie .subpanel { background: var(--on-accent-2); }
+.subpanel h3 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.01em; }
+.subpanel p { font-size: 0.9375rem; color: var(--muted); }
+.panel--foodie .subpanel p { color: var(--on-sage-body); }
+
+/* --- home: say-hello strip ------------------------------------------------- */
+
+.hello-strip {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--surface);
+  border-radius: 2rem;
+  padding: 2.5rem;
+}
+/* Scoped to the text block, not `.hello-strip p` — the badge is a <p class="soon">
+   and a bare descendant selector would outrank .soon and grey it out. */
+.hello-strip-text h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.hello-strip-text p { margin: 0; color: var(--muted); }
+
+/* --- /foodie: two photo-led cards (§4) ------------------------------------- */
+
+.foodie-grid {
+  gap: 1.5rem;
+  align-items: start;
+  padding-bottom: 3rem;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+}
+
+.foodie-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.5rem;
+  background: var(--surface);
+  border-radius: 2rem;
+  padding: 2.5rem;
+}
+.foodie-card > * { margin: 0; }
+.foodie-card--recipes { background: var(--accent-2-tint); }
+.foodie-card h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+.foodie-card p { color: var(--text); }
+.foodie-card--recipes p { color: var(--on-sage-body); }
+
+/* Both cards use the identical photo box (§7.4) — only the source differs. */
+.foodie-photo {
+  width: 100%;
+  height: 220px;
+  border-radius: 1.5rem;
+  overflow: hidden;
+}
+.foodie-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }

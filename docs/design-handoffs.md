@@ -34,16 +34,35 @@ This doc is the standing contract to design *against*. The first concrete instan
 
 The site is **dark-first** with a light mode via `prefers-color-scheme`. Every color in a handoff
 should map to one of these CSS variables (defined at the top of `main.css`), so the piece inherits the
-site's identity and both themes for free:
+site's identity for free:
 
-| Token        | Role                                   | Dark      | Light     |
-|--------------|----------------------------------------|-----------|-----------|
-| `--bg`       | page background                        | `#0f1115` | `#fbfbfc` |
-| `--surface`  | cards, raised blocks                   | `#171a21` | `#ffffff` |
-| `--border`   | hairlines, rules, dividers             | `#262b35` | `#e3e6ea` |
-| `--text`     | body text                              | `#e6e8ec` | `#1a1d23` |
-| `--muted`    | secondary / descriptive text           | `#9aa3b2` | `#5d6673` |
-| `--accent`   | links, active state, eyebrows          | `#5eb0ef` | `#1f6fb2` |
+| Token                | Role                                          | Value     |
+|----------------------|-----------------------------------------------|-----------|
+| `--bg`               | page background                               | `#f5ead8` |
+| `--surface`          | cards, raised blocks                          | `#ebddc5` |
+| `--border`           | hairlines, rules, dividers                    | `#c0b6a5` |
+| `--text`             | body text                                     | `#201e1d` |
+| `--muted`            | secondary / descriptive text                  | `#645c50` |
+| `--accent`           | terracotta: fills, borders, large type **only**| `#c67139` |
+| `--accent-ink`       | links, small labels, solid-pill fill          | `#8c491a` |
+| `--accent-press`     | hover step for accent chrome                  | `#b2622d` |
+| `--accent-ink-press` | hover step for solid pills                    | `#6f3a14` |
+| `--accent-tint`      | warm pill fill                                | `#fff2eb` |
+| `--accent-2`         | sage: the foodie voice, fills and large type  | `#7a8a5e` |
+| `--accent-2-ink`     | sage links, small labels, solid-pill fill     | `#56633f` |
+| `--accent-2-ink-press` | hover step for sage pills                   | `#434e31` |
+| `--accent-2-tint`    | sage panel ground                             | `#e1eecc` |
+
+**The site is light-only.** It was dark-first with a `prefers-color-scheme: light` counterpart until
+the home/`/foodie` redesign (see [`handoff-home-and-foodie.md`](handoff-home-and-foodie.md) §0), which
+replaced both with a single warm-cream palette. There is no dark branch to design for any more; do not
+reintroduce one for a single component.
+
+**The `-ink` split is a contrast rule, not a style choice.** `--accent` and `--accent-2` measure ~3:1
+on cream, so they may carry fills, borders, and large display type — never paragraph-size text. Links,
+body copy, and small uppercase labels use the `-ink` pair, which clears 4.5:1. Solid buttons take an
+`-ink` *fill* under a near-white label for the same reason: `--accent` under `--on-accent` is 3.30:1
+and fails AA.
 
 Type is the system sans stack (`ui-sans-serif, -apple-system, …`) — **no serif or display face is
 loaded.** Reading width is `--max` (`62rem`), centered by `.wrap`.
@@ -54,6 +73,10 @@ name the ones it maps to:
 - Page chrome: `.masthead.masthead--sub`, `.wrap`, `.eyebrow`, `.tagline`, `footer`
 - Prose / authored Markdown: `.recipe-notes` (block), `.recipe-summary` (lead line)
 - Cards & grids: `.card`, `.recipe-grid` + `.recipe-card` (auto-fill, `16rem` min)
+- Buttons: `.pill` + `.pill--solid` / `.pill--solid-2` / `.pill--outline`, laid out in a `.pill-row`
+- Link that reads as a link: `.textlink` (`.textlink--2` for the sage variant)
+- Panels: `.panel` (+ `.panel--foodie`), `.subpanel`, `.panel-kicker`, `.panel-lead` — `2rem` radius
+  outer, `1.5rem` inner, separated by fill rather than rule or shadow
 - Affiliate: `.affiliate-disclosure` (the FTC line; auto-rendered, see below)
 
 ## Content is data; the artboard is the component
