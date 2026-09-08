@@ -8,7 +8,7 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/css/main.css">
 </head>
-<body>
+<body class="page--foodie">
   <header class="masthead masthead--sub">
     <div class="wrap">
       <div id="authbar" class="authbar"></div>
@@ -18,23 +18,31 @@
     </div>
   </header>
 
-  <main class="wrap">
-    <section class="card" id="recipes">
+  <main class="wrap foodie-grid">
+    <section class="foodie-card foodie-card--recipes" id="recipes">
+      <div class="foodie-photo">
+        <img src="/img/beet-salad.jpg"
+             alt="A salad of roasted red and golden beets with crumbled goat cheese over greens">
+      </div>
       <h2>Recipes</h2>
       <p>
         The dishes from my cooking lessons — searchable, with ingredients, step-by-step
         method, photos, and lesson videos.
       </p>
-      <p class="links"><a href="/recipes/">Browse recipes →</a></p>
+      <a class="pill pill--solid-2" href="/recipes/">Browse recipes →</a>
     </section>
 
-    <section class="card" id="classes">
+    <section class="foodie-card" id="classes">
+      <div class="foodie-photo">
+        <img src="/img/img_7381.jpeg"
+             alt="A platter of canapés prepared in one of Steve's cooking classes">
+      </div>
       <h2>Classes &amp; workshops</h2>
       <p>
         Hands-on cooking classes for groups of 1 to 100 — from paella to knife
         skills. Sign up for a scheduled session or request one.
       </p>
-      <p class="links"><a href="/classes/">See classes →</a></p>
+      <a class="pill pill--solid" href="/classes/">See classes →</a>
     </section>
   </main>
 
