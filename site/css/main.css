@@ -854,6 +854,12 @@ textarea.form-input { resize: vertical; line-height: 1.5; }
 .page--home footer,
 .page--foodie footer { border-top: 0; }
 
+/* These two pages separate their blocks by fill, not by rule (§2), so the sub-page
+   masthead's hairline is dropped here to match the footer above. Scoped to /foodie
+   rather than .masthead--sub itself: every other sub-page still uses the card
+   layout, where that rule does useful work. */
+.page--foodie .masthead--sub { border-bottom: 0; }
+
 /* --- shared: pill buttons -------------------------------------------------- */
 
 .pill-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; }
