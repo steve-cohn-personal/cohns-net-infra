@@ -20,6 +20,16 @@
 # That is the exact race above: the tag would resolve to nothing, or worse, to a
 # stale image under a moving tag.
 #
+# "Is there anything to deploy?" is answered by asking ECS what the service is
+# running, NOT by reading container_image from tfvars. tfvars is gitignored,
+# local-only, and rewritten by this script before the apply — so after an apply
+# that failed or was aborted it names an image that was never deployed. Trusting
+# it would report "nothing to deploy" and exit 0 while the environment runs
+# something else: the same proxy-for-state mistake as #67. The script only skips
+# the apply when ECS positively confirms the desired image; if ECS can't be
+# queried it applies anyway, because a no-op apply is cheap and a false "nothing
+# to deploy" is not.
+#
 # Env: AWS_PROFILE (default admin, the mgmt SSO profile the compute stack uses),
 # AWS_REGION (default us-west-2). Needs `gh` authenticated for the build check.
 set -euo pipefail
@@ -35,6 +45,7 @@ for arg in "$@"; do
     *)     SHA="$arg" ;;
   esac
 done
+sha_arg="$SHA"
 
 REGION="${AWS_REGION:-us-west-2}"
 PROFILE="${AWS_PROFILE:-admin}"
@@ -43,6 +54,54 @@ stack="${repo_root}/terraform/live/compute"
 tfvars="${stack}/env/${ENV}.tfvars"
 
 [ -f "$tfvars" ] || { echo "no tfvars for '${ENV}' at ${tfvars}" >&2; exit 1; }
+
+role_arn="$(sed -nE 's/^[[:space:]]*account_role_arn[[:space:]]*=[[:space:]]*"(.*)".*/\1/p' "$tfvars")"
+
+# --- AWS helpers --------------------------------------------------------------
+# Print "AccessKeyId<TAB>SecretAccessKey<TAB>SessionToken" for the environment
+# account's role, assumed from the SSO profile.
+assume_env_role() {
+  [ -n "$role_arn" ] || { echo "no account_role_arn in ${tfvars}" >&2; return 1; }
+  aws sts assume-role --role-arn "$role_arn" --role-session-name "deploy-api-${ENV}" \
+    --profile "$PROFILE" --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text
+}
+
+# Export the assumed-role credentials into the current shell. Only call this
+# inside a subshell: static keys in the environment take precedence over
+# AWS_PROFILE, so if they leaked into the terraform run they would replace the
+# mgmt profile and break the provider's own assume-role.
+use_env_role() {
+  local creds
+  creds="$(assume_env_role)" || return 1
+  export AWS_ACCESS_KEY_ID="$(cut -f1 <<<"$creds")"
+  export AWS_SECRET_ACCESS_KEY="$(cut -f2 <<<"$creds")"
+  export AWS_SESSION_TOKEN="$(cut -f3 <<<"$creds")"
+  unset AWS_PROFILE
+}
+
+# Print the image the ECS service is running right now. Prints nothing and fails
+# if it can't be positively determined: no credentials, no service yet (first
+# deploy), or an API error. Runs in a subshell so the credentials stay contained.
+running_image() (
+  use_env_role || exit 1
+  local td image
+  td="$(aws ecs describe-services --cluster "comments-${ENV}" --services "comments-${ENV}" \
+    --region "$REGION" --query "services[?status=='ACTIVE'] | [0].taskDefinition" --output text)" || exit 1
+  case "$td" in ""|None) exit 1 ;; esac
+  image="$(aws ecs describe-task-definition --task-definition "$td" --region "$REGION" \
+    --query 'taskDefinition.containerDefinitions[0].image' --output text)" || exit 1
+  case "$image" in ""|None) exit 1 ;; esac
+  echo "$image"
+)
+
+# tfvars is gitignored and local-only for this stack (compute is not CI-applied);
+# it is the apply's input, not a record of what is deployed.
+pin_tfvars() {
+  local tmp
+  tmp="$(mktemp)"
+  sed -E "s|^([[:space:]]*container_image[[:space:]]*=[[:space:]]*).*|\1\"$1\"|" "$tfvars" > "$tmp"
+  mv "$tmp" "$tfvars"
+}
 
 # --- resolve the commit to deploy ------------------------------------------
 # container-build only runs on changes under services/comments-api, so most
@@ -60,7 +119,7 @@ fi
 # with github.sha, which is always 40 characters.
 if [ "${#SHA}" -ne 40 ]; then
   SHA="$(git -C "$repo_root" rev-parse "$SHA" 2>/dev/null || true)"
-  [ "${#SHA}" -eq 40 ] || { echo "could not resolve '${1:-}' to a full commit sha" >&2; exit 1; }
+  [ "${#SHA}" -eq 40 ] || { echo "could not resolve '${sha_arg}' to a full commit sha" >&2; exit 1; }
 fi
 
 # --- verify the image was actually built -----------------------------------
@@ -87,16 +146,29 @@ current="$(sed -nE 's/^[[:space:]]*container_image[[:space:]]*=[[:space:]]*"(.*)
 
 repo_uri="${current%:*}"
 desired="${repo_uri}:${SHA}"
+running="$(running_image)" || running=""
 
 echo
 echo "environment : ${ENV}"
-echo "currently   : ${current}"
+echo "tfvars      : ${current}"
+echo "running     : ${running:-unknown (could not read the service from ECS)}"
 echo "deploying   : ${desired}"
 echo
 
-if [ "$current" = "$desired" ]; then
-  echo "already pinned to that image — nothing to deploy."
+if [ -n "$running" ] && [ "$running" = "$desired" ]; then
+  if [ "$current" != "$desired" ]; then
+    pin_tfvars "$desired"
+    echo "ECS confirms ${ENV} is already running that image; tfvars disagreed, so rewrote it to match."
+  else
+    echo "ECS confirms ${ENV} is already running that image — nothing to deploy."
+  fi
   exit 0
+fi
+
+if [ -z "$running" ]; then
+  echo "note: couldn't confirm the running image (first deploy, or no credentials) — applying anyway."
+elif [ "$current" != "$running" ]; then
+  echo "note: tfvars and ECS disagree — a previous apply likely failed or was aborted."
 fi
 
 if [ "$ENV" = "prod" ] && [ -z "$ASSUME_YES" ]; then
@@ -106,11 +178,7 @@ if [ "$ENV" = "prod" ] && [ -z "$ASSUME_YES" ]; then
 fi
 
 # --- apply ------------------------------------------------------------------
-# tfvars is gitignored and local-only for this stack (compute is not CI-applied),
-# so it doubles as the record of what each environment is pinned to.
-tmp="$(mktemp)"
-sed -E "s|^([[:space:]]*container_image[[:space:]]*=[[:space:]]*).*|\1\"${desired}\"|" "$tfvars" > "$tmp"
-mv "$tmp" "$tfvars"
+pin_tfvars "$desired"
 
 cd "$stack"
 AWS_PROFILE="$PROFILE" terraform init -reconfigure -input=false \
@@ -120,17 +188,14 @@ AWS_PROFILE="$PROFILE" terraform apply -input=false -var-file="env/${ENV}.tfvars
 
 # --- confirm it actually rolled ---------------------------------------------
 echo
-echo "waiting for the ECS deployment to stabilise..."
-role_arn="$(sed -nE 's/^[[:space:]]*account_role_arn[[:space:]]*=[[:space:]]*"(.*)".*/\1/p' "$tfvars")"
 if [ -n "$role_arn" ]; then
-  creds="$(aws sts assume-role --role-arn "$role_arn" --role-session-name "deploy-api-${ENV}" \
-    --profile "$PROFILE" --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)"
-  export AWS_ACCESS_KEY_ID="$(echo "$creds" | cut -f1)"
-  export AWS_SECRET_ACCESS_KEY="$(echo "$creds" | cut -f2)"
-  export AWS_SESSION_TOKEN="$(echo "$creds" | cut -f3)"
-  unset AWS_PROFILE
-  aws ecs wait services-stable --cluster "comments-${ENV}" --services "comments-${ENV}" \
-    --region "$REGION" && echo "service stable."
+  echo "waiting for the ECS deployment to stabilise..."
+  (
+    use_env_role
+    aws ecs wait services-stable --cluster "comments-${ENV}" --services "comments-${ENV}" \
+      --region "$REGION"
+  )
+  echo "service stable."
 fi
 
 api_host="api.cohns.net"
