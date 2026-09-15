@@ -3,6 +3,12 @@ name: container-build
 # Build the comments-api image on every change to it. PRs build only (proves the
 # Dockerfile); pushes to main build and push to ECR, tagged by commit sha and
 # latest. Keyless — the push credential comes from OIDC, no secret in the repo.
+#
+# NOTHING DEPLOYS FROM :latest. It is kept only as a convenience alias for pulling
+# by hand; `live/compute` validates that container_image is a full commit sha and
+# rejects a moving tag. A moving tag is a constant to Terraform — the string never
+# changes, so there is no diff and no deployment — which is how prod ran a month-old
+# image through the 2026-09-07 outage. Deploy with scripts/deploy-api.sh. Issue #67.
 
 on:
   pull_request:
