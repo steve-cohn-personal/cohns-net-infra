@@ -12,7 +12,7 @@ dns_account_role_arn = "arn:aws:iam::<shared-services-account-id>:role/Organizat
 hosted_zone_id = "Z0000000000000000000"
 domain_name    = "api.cohns.net"
 
-container_image = "<ecr-repo-url>/cohns/comments-api:<40-char commit sha>"  # set by scripts/deploy-api.sh; never a moving tag
+container_image = "<ecr-repo-url>/cohns/comments-api:<40-char commit sha>" # set by scripts/deploy-api.sh; never a moving tag
 
 db_nullpool = true
 
