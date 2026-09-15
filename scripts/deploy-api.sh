@@ -30,6 +30,11 @@
 # queried it applies anyway, because a no-op apply is cheap and a false "nothing
 # to deploy" is not.
 #
+# Schema changes: if migration files were added between the running image and
+# the one being deployed, the script runs `db-migrate.sh <env> <sha>` — with the
+# NEW image, since the running one doesn't contain them — before the apply rolls
+# the service onto code that needs them. A failed migration stops the deploy.
+#
 # Env: AWS_PROFILE (default admin, the mgmt SSO profile the compute stack uses),
 # AWS_REGION (default us-west-2). Needs `gh` authenticated for the build check.
 set -euo pipefail
@@ -171,6 +176,39 @@ elif [ "$current" != "$running" ]; then
   echo "note: tfvars and ECS disagree — a previous apply likely failed or was aborted."
 fi
 
+# --- schema changes ---------------------------------------------------------
+# New code can read columns the database doesn't have yet (prod runs
+# auto_create_tables=false, so that's a 500), so migrations added between the
+# running image and this one must run BEFORE the apply rolls the service — with
+# the image being deployed, since the running image doesn't contain them.
+# Only ADDED migration files count: going back to an older sha removes files, and
+# `alembic upgrade head` from older code fails outright when the database is ahead.
+versions_dir="services/comments-api/migrations/versions"
+MIGRATE=""
+running_sha="${running##*:}"
+if [ -z "$running" ]; then
+  echo "note: migrations not run — no running image to compare against, and the migration"
+  echo "      task borrows the service's network. If this release changes the schema, run"
+  echo "      ./scripts/db-migrate.sh ${ENV} ${SHA} once the service exists."
+elif ! [[ "$running_sha" =~ ^[0-9a-f]{40}$ ]] || ! git -C "$repo_root" cat-file -e "${running_sha}^{commit}" 2>/dev/null; then
+  MIGRATE=1
+  echo "migrations  : will run first — can't diff against the running image, and upgrade head is a no-op when current"
+else
+  added="$(git -C "$repo_root" diff --name-only --diff-filter=A "$running_sha" "$SHA" -- "$versions_dir")"
+  removed="$(git -C "$repo_root" diff --name-only --diff-filter=D "$running_sha" "$SHA" -- "$versions_dir")"
+  if [ -n "$added" ]; then
+    MIGRATE=1
+    echo "migrations  : will run first, with the image being deployed:"
+    sed 's|^.*/|                |' <<<"$added"
+  else
+    echo "migrations  : none added since the running image"
+  fi
+  if [ -n "$removed" ]; then
+    echo "note: this image predates migrations the database may already have (not downgraded):"
+    sed 's|^.*/|      |' <<<"$removed"
+  fi
+fi
+
 if [ "$ENV" = "prod" ] && [ -z "$ASSUME_YES" ]; then
   printf 'apply to PROD? [y/N] '
   read -r reply
@@ -178,6 +216,11 @@ if [ "$ENV" = "prod" ] && [ -z "$ASSUME_YES" ]; then
 fi
 
 # --- apply ------------------------------------------------------------------
+# A failed migration stops here, before tfvars is rewritten or anything rolls.
+if [ -n "$MIGRATE" ]; then
+  AWS_PROFILE="$PROFILE" AWS_REGION="$REGION" "${repo_root}/scripts/db-migrate.sh" "$ENV" "$SHA"
+  echo
+fi
 pin_tfvars "$desired"
 
 cd "$stack"
