@@ -14,7 +14,7 @@ Live page: [steve.cohns.net/observability](https://steve.cohns.net/observability
 | Uptime + latency, worldwide | Grafana Synthetic Monitoring | Blackbox — proves the *user's* experience, not the server's opinion of itself |
 | Request rate, 5xx, p50/p95/p99 | ALB metrics via CloudWatch | RED at the edge, with **no agent and no extra compute** |
 | Aurora capacity (ACU) + connections | RDS metrics via CloudWatch | The scale-to-zero story, and cost as a live number |
-| Target health | ALB target group | Catches a task that's up but not serving |
+| Target health | ALB target group | Catches a task that's up but not serving — see [the 2026-08-31 readiness incident](incidents/2026-08-31-readiness-vs-liveness.md) |
 | App-level RED | `/metrics` on the comments API | Prometheus histograms, labelled by handler — additive, not load-bearing |
 
 ## Decisions
