@@ -52,6 +52,37 @@ and never deployed. See issue #67.
 Because ECR lives in the shared-services account that the laptop SSO profiles cannot
 read, the script verifies the image through its GitHub build rather than the registry.
 
+### Schema changes
+
+Migrations have to reach the database **before** the service rolls onto code that
+reads them. Prod runs `auto_create_tables = false`, so a missing column is a 500.
+They also have to run from the **new** image. `scripts/db-migrate.sh <env>` on its
+own uses the service's task definition, which is pinned to the image that is
+currently deployed, and that image doesn't contain the new migration.
+
+`deploy-api.sh` handles both. When migration files were added between the running
+sha and the one being deployed, it runs `db-migrate.sh <env> <sha>` after the
+confirmation prompt and before the apply, and a failed migration stops the deploy.
+To do it by hand:
+
+```bash
+./scripts/db-migrate.sh prod <sha> --dry-run   # what would run; nothing registered
+./scripts/db-migrate.sh prod <sha>             # migrate with that image
+./scripts/deploy-api.sh prod <sha>             # then roll the service
+```
+
+ECS `run-task` overrides can't change a container's image. So with a sha,
+`db-migrate.sh` registers a copy of the service's task definition with the image
+swapped, under a separate `comments-<env>-migrate` family that neither the service
+nor Terraform points at, runs it, and deregisters it.
+
+Keep migrations **additive** (expand, then contract in a later release). The old
+code keeps serving while the migration runs and until the rollout finishes. If the
+apply fails after a migration, the database is ahead of the running code.
+Rolling back to an older sha does not downgrade the schema. `deploy-api.sh` warns
+about this and does not run `upgrade head` from the older image, which would fail
+because the database is at a revision that code doesn't know.
+
 ## What applying `live/compute` (dev) creates
 
 ACM cert for `api.dev.cohns.net` (DNS-validated in the dev zone) → Application Load
