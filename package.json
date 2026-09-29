@@ -1,0 +1,26 @@
+{
+  "name": "cohns-net-infra",
+  "version": "1.0.0",
+  "description": "The infrastructure behind [www.cohns.net](https://www.cohns.net), built with Terraform and Ansible on AWS. This repository is public by design: it *is* the portfolio piece.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/steve-cohn-personal/cohns-net-infra.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/steve-cohn-personal/cohns-net-infra/issues"
+  },
+  "homepage": "https://github.com/steve-cohn-personal/cohns-net-infra#readme",
+  "devDependencies": {
+    "cypress": "^16.1.0"
+  }
+}
