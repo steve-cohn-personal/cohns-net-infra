@@ -317,6 +317,17 @@ footer {
 .tool-edit-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem; }
 .tool-edit-row .form-input { flex: 1 1 8rem; }
 
+/* Pre-rendered recipe pages: yield line (replaced by the scaler when JS runs), and the
+   monetization slots — gear, email signup, book-a-class. */
+[hidden] { display: none !important; }
+.recipe-yield { margin: 0 0 0.75rem; color: var(--muted); }
+.recipe-gear, .recipe-signup { margin-top: 2.5rem; }
+.recipe-signup-form { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; max-width: 32rem; }
+.recipe-signup-form label { flex-basis: 100%; font-size: 0.95rem; color: var(--muted); }
+.recipe-signup-form .form-input { flex: 1 1 14rem; }
+.recipe-slot-note { margin: 0.5rem 0 0; font-size: 0.85rem; font-style: italic; color: var(--muted); }
+.recipe-cta { margin: 2.5rem 0 0; }
+
 /* FTC affiliate disclosure, shown under recipes that carry an Amazon link. */
 .affiliate-disclosure {
   margin: 2.5rem 0 0;

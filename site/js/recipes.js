@@ -221,6 +221,20 @@
   function currentFilter() { return new URLSearchParams(location.search).get("category"); }
   function setFilter(cat) { history.replaceState(null, "", cat ? "?category=" + encodeURIComponent(cat) : location.pathname); }
 
+  // Slugs that have a pre-rendered /recipes/<slug>/ page (embedded by the build). A recipe
+  // published since the last deploy isn't in the set and falls back to the client-rendered
+  // recipe.html, so a card never links to a 404.
+  var STATIC_SLUGS = (function () {
+    try { return JSON.parse(document.getElementById("static-slugs").textContent); }
+    catch (e) { return []; }
+  })();
+
+  function recipeHref(slug) {
+    return STATIC_SLUGS.indexOf(slug) !== -1
+      ? "/recipes/" + encodeURIComponent(slug) + "/"
+      : "/recipes/recipe.html?slug=" + encodeURIComponent(slug);
+  }
+
   function recipeCard(r) {
     var kids = [];
     if (r.hero_image_url) {
@@ -228,7 +242,7 @@
     }
     kids.push(el("h3", {}, [r.title]));
     kids.push(el("p", {}, [r.summary || ""]));
-    return el("a", { class: "recipe-card" + (r.hero_image_url ? " has-thumb" : ""), href: "/recipes/recipe.html?slug=" + encodeURIComponent(r.slug) }, kids);
+    return el("a", { class: "recipe-card" + (r.hero_image_url ? " has-thumb" : ""), href: recipeHref(r.slug) }, kids);
   }
 
   // Bucket recipes by category in the canonical order; unknown/null land in "Other"
@@ -437,10 +451,45 @@
     });
   }
 
+  // The pre-rendered page (/recipes/<slug>/) already holds all the content; this adds the
+  // two things that need JS: the servings scaler and playback of the HLS lesson video.
+  function enhanceDetail(root) {
+    var data;
+    try { data = JSON.parse(document.getElementById("recipe-data").textContent); }
+    catch (e) { return; }
+
+    var list = root.querySelector("ul.ingredients");
+    if (list && data.ingredients && data.ingredients.length) {
+      var base = Math.max(1, parseInt(data.servings, 10) || 1);
+      var paint = function (current) {
+        var factor = current / base;
+        list.innerHTML = "";
+        data.ingredients.forEach(function (i) {
+          list.appendChild(mdEl("li", null, scaleIngredient(i, factor), false));
+        });
+      };
+      var stale = root.querySelector(".recipe-yield");
+      if (stale) stale.parentNode.removeChild(stale);
+      list.parentNode.insertBefore(servingsControl(base, paint), list);
+    }
+
+    var video = root.querySelector("video[data-hls]");
+    if (video) {
+      playVideo(video, video.getAttribute("data-hls"), function () {
+        var wrap = video.parentNode;
+        wrap.innerHTML = "";
+        wrap.appendChild(el("p", { class: "recipe-video-pending" }, [
+          "This lesson video is still processing — check back in a few minutes.",
+        ]));
+      });
+    }
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     var list = document.getElementById("recipe-list");
     var detail = document.getElementById("recipe-detail");
     if (list) renderList(list);
-    if (detail) renderDetail(detail);
+    if (detail && detail.hasAttribute("data-static")) enhanceDetail(detail);
+    else if (detail) renderDetail(detail);
   });
 })();
