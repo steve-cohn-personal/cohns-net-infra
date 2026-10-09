@@ -163,7 +163,7 @@
   // onChange(current) whenever the count changes so the caller can rescale.
   function servingsControl(base, onChange) {
     var current = base;
-    var input = el("input", { class: "form-input servings-input", type: "number", min: "1", max: "1000", value: String(base) });
+    var input = el("input", { class: "form-input servings-input", type: "number", min: "1", max: "1000", value: String(base), "aria-label": "Number of servings" });
     var reset = el("button", { type: "button", class: "servings-reset" }, ["reset"]);
 
     function set(n) {
