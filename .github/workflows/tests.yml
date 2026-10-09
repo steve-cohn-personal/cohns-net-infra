@@ -11,12 +11,14 @@ on:
     paths:
       - 'scripts/**'
       - 'services/comments-api/**'
+      - 'site/js/md.js'
       - '.github/workflows/tests.yml'
   push:
     branches: [main]
     paths:
       - 'scripts/**'
       - 'services/comments-api/**'
+      - 'site/js/md.js'
       - '.github/workflows/tests.yml'
 
 permissions:
@@ -34,6 +36,17 @@ jobs:
         working-directory: scripts
         # Discovery picks up every scripts/test_*.py — new tests need no edit here.
         run: python -m unittest discover -p 'test_*.py' --verbose
+
+  static-recipes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: unit tests
+        # Imports the real site/js/md.js, hence the md.js path trigger above.
+        run: node --test scripts/static-recipes/test/
 
   comments-api:
     runs-on: ubuntu-latest

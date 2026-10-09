@@ -9,7 +9,7 @@ BACKEND  := env/$(ENV).backend.hcl
 
 VALID_ENVS := dev stage prod
 
-.PHONY: help check-env init plan apply destroy fmt validate lint sso deploy-site clean
+.PHONY: help check-env init plan apply destroy fmt validate lint sso build-site deploy-site clean
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -57,16 +57,20 @@ validate: ## Validate every module and root module
 
 lint: fmt validate ## fmt + validate
 
-deploy-site: check-env ## Sync site/ to ENV's bucket and invalidate the CDN
+build-site: ## Build dist/site: site/ plus the pre-rendered recipe pages (reads the public API)
+	node scripts/static-recipes/build.mjs --env $(ENV)
+	node scripts/static-recipes/check.mjs dist/site --env $(ENV)
+
+deploy-site: check-env build-site ## Build, sync dist/site to ENV's bucket and invalidate the CDN
 	@set -e; \
 	bucket=$$(cd $(LIVE_DIR) && terraform output -raw bucket_name); \
 	dist=$$(cd $(LIVE_DIR) && terraform output -raw distribution_id); \
 	echo "==> syncing assets to $$bucket"; \
-	aws s3 sync site/ "s3://$$bucket/" --delete --profile cohns-$(ENV) \
+	aws s3 sync dist/site/ "s3://$$bucket/" --delete --profile cohns-$(ENV) \
 		--exclude '*.html' \
 		--cache-control 'public,max-age=3600,stale-while-revalidate=86400'; \
 	echo "==> syncing html to $$bucket"; \
-	aws s3 sync site/ "s3://$$bucket/" --delete --profile cohns-$(ENV) \
+	aws s3 sync dist/site/ "s3://$$bucket/" --delete --profile cohns-$(ENV) \
 		--exclude '*' --include '*.html' \
 		--cache-control 'public,max-age=0,must-revalidate'; \
 	echo "==> invalidating $$dist"; \

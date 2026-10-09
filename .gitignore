@@ -85,3 +85,6 @@ terraform/modules/*/lambda/*.zip
 # Local security-scan artifacts (checkov)
 results.sarif
 .ckvtmp*/
+
+# Output of scripts/static-recipes/build.mjs (the deploy syncs this, not site/).
+/dist/

@@ -5,4 +5,4 @@ Allow: /
 # origin. It is disallowed here as defence in depth, not as its access control.
 Disallow: /family/
 
-Sitemap: https://www.cohns.net/sitemap.xml
+Sitemap: https://steve.cohns.net/sitemap.xml

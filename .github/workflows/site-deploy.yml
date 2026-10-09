@@ -7,7 +7,7 @@ name: deploy-site
 on:
   push:
     branches: [main]
-    paths: ['site/**', '.github/workflows/site-deploy.yml']
+    paths: ['site/**', 'scripts/static-recipes/**', '.github/workflows/site-deploy.yml']
   workflow_dispatch:
     inputs:
       environment:
@@ -30,6 +30,25 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Pre-render the crawlable recipe pages, the /recipes/ index, sitemap.xml and
+      # robots.txt into dist/site (site/ plus the generated files); everything below
+      # publishes dist/site. Recipes come from the public API — no credentials — and the
+      # build fails if any recipe lacks a name, ingredients or instructions. Runs before the
+      # AWS login on purpose: a bad recipe should stop the deploy before it has any access.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: build static recipe pages
+        env:
+          SITE_ENV: ${{ inputs.environment || 'dev' }}
+          # Set to the signup form's POST URL once an email provider is chosen.
+          EMAIL_SIGNUP_ACTION: ${{ vars.EMAIL_SIGNUP_ACTION }}
+        run: |
+          node --test scripts/static-recipes/test/
+          node scripts/static-recipes/build.mjs
+          node scripts/static-recipes/check.mjs dist/site --env "$SITE_ENV"
+
       - uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.SITE_DEPLOY_ROLE_ARN }}
@@ -45,7 +64,7 @@ jobs:
       - name: version assets in html
         run: |
           VER="${GITHUB_SHA::8}"
-          find site -name '*.html' -print0 | xargs -0 sed -i -E \
+          find dist/site -name '*.html' -print0 | xargs -0 sed -i -E \
             "s#(\"/(js|css|vendor)/[A-Za-z0-9._/-]+\.(js|css))\"#\1?v=${VER}\"#g"
 
       # Assets are served under stable, un-hashed names (/js/auth.js,
@@ -56,14 +75,14 @@ jobs:
       # HTML stays no-cache so a deploy is visible immediately.
       - name: sync assets
         run: |
-          aws s3 sync site/ "s3://${{ vars.SITE_BUCKET }}/" \
+          aws s3 sync dist/site/ "s3://${{ vars.SITE_BUCKET }}/" \
             --delete \
             --exclude '*.html' \
             --cache-control 'public,max-age=3600,stale-while-revalidate=86400'
 
       - name: sync html
         run: |
-          aws s3 sync site/ "s3://${{ vars.SITE_BUCKET }}/" \
+          aws s3 sync dist/site/ "s3://${{ vars.SITE_BUCKET }}/" \
             --delete \
             --exclude '*' --include '*.html' \
             --cache-control 'public,max-age=0,must-revalidate'
