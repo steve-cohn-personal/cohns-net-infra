@@ -45,7 +45,7 @@ jobs:
           # Set to the signup form's POST URL once an email provider is chosen.
           EMAIL_SIGNUP_ACTION: ${{ vars.EMAIL_SIGNUP_ACTION }}
         run: |
-          node --test scripts/static-recipes/test/
+          node --test "scripts/static-recipes/test/*.test.mjs"
           node scripts/static-recipes/build.mjs
           node scripts/static-recipes/check.mjs dist/site --env "$SITE_ENV"
 

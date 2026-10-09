@@ -48,7 +48,7 @@ until the next deploy.
 ## Local use
 
 ```sh
-node --test scripts/static-recipes/test/          # unit tests
+node --test "scripts/static-recipes/test/*.test.mjs"          # unit tests
 make build-site ENV=dev                           # build + validate into dist/site
 (cd dist/site && python3 -m http.server 8765)     # look at it
 ```
