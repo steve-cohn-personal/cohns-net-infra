@@ -60,7 +60,13 @@ runs through the same vendor as the dashboards, a vendor outage takes out both y
 and your ability to find out you lost it. Alarms live in the account and region where the metrics
 are, so they keep firing regardless.
 
-Three alarms today — 5xx count, p95 latency, unhealthy targets — plus the one that actually
+**The API's own alarms (5xx, unhealthy targets) live in `live/compute/alarms.tf`, not here** — this
+stack has only ever been applied to dev, where compute is torn down, so it can't page for prod.
+Keep `enable_alb_alarms = false` in any environment that applies that file, or the alarm names
+collide. Note the SNS topic below uses `alias/aws/sns`, which CloudWatch alarms cannot publish
+to; it needs a customer-managed key before `enable_alb_alarms` is ever turned on.
+
+The alarm set defined here — 5xx count, p95 latency, unhealthy targets — plus the one that actually
 matters on a personal project: a **monthly cost budget** at 80% actual / 100% forecast. The
 realistic failure mode here isn't an outage, it's a runaway bill.
 

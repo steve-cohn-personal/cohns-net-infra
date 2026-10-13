@@ -82,13 +82,22 @@ module "service" {
   desired_count    = var.desired_count
   cpu_architecture = var.cpu_architecture
 
-  # The ALB checks readiness, not liveness. /healthz only proves the process is
-  # up; /readyz opens a database connection. A task that still answers /healthz
-  # but can no longer reach the database stays in service forever behind the
-  # former — which is how the API served 500s from 2026-08-31 until it was
-  # restarted by hand. Checking /readyz takes that task out of rotation and lets
-  # ECS replace it with one that works.
-  health_check_path = "/readyz"
+  # The ALB checks liveness (/healthz), deliberately NOT readiness (/readyz).
+  #
+  # /readyz opens a database connection. The ALB probes from two nodes every 30s, so
+  # pointing it there kept Aurora Serverless awake around the clock: it sat at 0.5 ACU
+  # (about $45/mo) instead of pausing to $0, from the 2026-09-01 switch until the bill
+  # showed it in October (promotional credits hid it before that). Scale-to-zero only
+  # works if nothing polls the database.
+  #
+  # What /readyz bought us: the 2026-08-31 incident, where a task that could no longer
+  # reach the database stayed in rotation and served 500s until restarted by hand. Two
+  # things replace it. The root cause (DB credentials read once at import) is fixed in
+  # the app, which now reads them per connection and retries once on a refused password.
+  # And the 5xx alarm in alarms.tf pages on sustained server errors. We no longer get
+  # automatic task replacement for a broken DB connection; that is the accepted price.
+  # See docs/incidents/2026-08-31-readiness-vs-liveness.md.
+  health_check_path = "/healthz"
 
   # The app reads its DB password from Secrets Manager itself (task role below);
   # only non-secret settings are passed as plain env.

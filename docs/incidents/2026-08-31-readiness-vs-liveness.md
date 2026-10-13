@@ -110,8 +110,8 @@ about how the process would also have crashed, the check is measuring the wrong 
 
 ## What changed
 
-- `health_check_path = "/readyz"` in `live/compute`, with the reasoning in a comment
-- An **unhealthy target** alarm now exists in `live/observability` — see
+- `health_check_path = "/readyz"` in `live/compute`, with the reasoning in a comment *(reverted 2026-10-13, see below)*
+- An **unhealthy target** alarm was added in `live/observability` *(dev only; see below)* — see
   [observability.md](../observability.md). The signal table there lists ALB target health as
   "catches a task that's up but not serving," which is this incident, encoded
 - Synthetic monitoring probes the API from outside, so the next equivalent failure is caught by
@@ -120,6 +120,30 @@ about how the process would also have crashed, the check is measuring the wrong 
 That third one is the durable lesson. The blackbox probe would have caught this on day one
 without knowing anything about `/healthz`, `/readyz`, or ECS — it just asks the same question a
 user asks and believes the answer.
+
+## Update 2026-10-13: the fix was reverted, for cost
+
+The `/readyz` health check kept Aurora Serverless awake 24/7 (ALB probes every 30s, each one a
+`SELECT 1`), so scale-to-zero never engaged: 0.5 ACU around the clock, about $45/mo, from
+2026-09-01. Promotional credits hid it until October's bill. The ALB now checks `/healthz` again
+(`live/compute`, with the reasoning in a comment).
+
+What this gives up is automatic replacement of a task that cannot reach its database. What
+covers it instead:
+
+- The root cause is fixed in the app (#64): DB credentials are read per connection, with one
+  retry on a refused password. The stale-credential failure that caused this incident can no
+  longer wedge a task.
+- A **5xx alarm** (`live/compute/alarms.tf`) pages on 3+ server errors in an hour, counting both
+  the app's 5xx and the ALB's own 502/503/504. The alarm that existed in `live/observability`
+  watched only the app's, and had never been applied to prod: **prod had no alarms at all**, so the
+  "unhealthy target alarm" listed under *What changed* above did not exist where it mattered.
+- The unhealthy-hosts alarm moved there too. With `/healthz` it means "a task stopped answering
+  HTTP", not "the database is unreachable".
+
+Two lessons, both the same one as above: an alarm that was never applied to the environment it
+protects is a belief, not a control; and a health check that touches a dependency is also a
+load on that dependency.
 
 ## Still open
 

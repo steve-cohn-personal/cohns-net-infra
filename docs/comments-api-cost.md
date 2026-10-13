@@ -24,7 +24,10 @@ predates AWS's 2024 public-IPv4 charge and omits it.
 
 Two things that are *not* costing anything, so don't go hunting there:
 
-- **Aurora compute is genuinely ~$0.** `min_capacity = 0` works — `ServerlessDatabaseCapacity`
+- **Aurora compute is genuinely ~$0** *(true on 2026-08-23; it stopped being true 2026-09-01 and
+  was fixed 2026-10-13. From 9/1 the ALB health check on `/readyz` queried the DB every 30s and
+  pinned it at 0.5 ACU, ~$45/mo, hidden by promotional credits until October. The ALB checks
+  `/healthz` now; do not point it at anything that touches the database.)*. `min_capacity = 0` works — `ServerlessDatabaseCapacity`
   averages ~0.05 ACU over three days, spiking to 2.0 only during a deploy or migration.
 - **The 4 KMS keys are AWS-managed** (no customer aliases), so $0, and the two Elastic IPs are
   the ALB's own — not strays.
