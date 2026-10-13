@@ -7,6 +7,7 @@
 # ---------------------------------------------------------------------------
 
 resource "aws_sns_topic" "alarms" {
+  # checkov:skip=CKV_AWS_26:CloudWatch alarms cannot publish to a topic encrypted with the AWS-managed key, and a customer-managed key ($1/mo plus a key policy to maintain) protects nothing here; see below.
   name = "comments-${var.environment}-alarms"
   # Deliberately NOT encrypted with alias/aws/sns like the topics above: CloudWatch
   # alarms cannot publish to a topic encrypted with the AWS-managed key (it needs a

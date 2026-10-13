@@ -10,6 +10,7 @@
 # ---------------------------------------------------------------------------
 
 data "aws_availability_zones" "available" {
+  # checkov:skip=CKV_AWS_394:only the first var.az_count names are used (the list is sorted, so a newly added AZ cannot displace an existing one); pinning zone ids here would force subnet replacement in prod for no gain.
   state = "available"
 }
 
