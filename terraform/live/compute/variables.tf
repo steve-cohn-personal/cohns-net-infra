@@ -87,6 +87,12 @@ variable "access_request_emails" {
   default     = ["steve@cohns.net"]
 }
 
+variable "alarm_emails" {
+  description = "Addresses paged (via SNS email) by the API's CloudWatch alarms. Each confirms once."
+  type        = list(string)
+  default     = ["steve@cohns.net"]
+}
+
 variable "cors_origins" {
   description = "Optional override for allowed CORS origins. Null (the default) uses the per-environment value derived in versions.tf (local.cors_origins)."
   type        = list(string)
