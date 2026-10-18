@@ -1,0 +1,16 @@
+{
+  "name": "cohns-net-e2e",
+  "private": true,
+  "description": "Cypress end-to-end tests that run against the live cohns.net site",
+  "scripts": {
+    "cy:open": "cypress open",
+    "cy:run": "cypress run",
+    "cy:run:dev": "cypress run --config baseUrl=https://dev.cohns.net --spec 'cypress/e2e/site/**'",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "cypress": "^16.1.1",
+    "typescript": "^7.0.2"
+  }
+}

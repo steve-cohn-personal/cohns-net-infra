@@ -1,0 +1,85 @@
+name: e2e
+
+# Cypress end-to-end tests against the live site (tests/e2e). No AWS access needed.
+#   after deploy-site — site/ specs against dev, on the commit that was just deployed
+#   nightly           — every spec against prod (also catches API / scale-to-zero regressions)
+#   manual            — pick dev or prod
+#   pull request      — typecheck + site/ specs against dev when the tests themselves change
+# Specs under live-api/ need api.cohns.net, which only prod has, so they never run against dev.
+
+on:
+  workflow_run:
+    workflows: [deploy-site]
+    types: [completed]
+  schedule:
+    - cron: '17 13 * * *'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Environment to test
+        required: true
+        type: choice
+        options: [prod, dev]
+        default: prod
+  pull_request:
+    paths:
+      - 'tests/e2e/**'
+      - '.github/workflows/e2e.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cypress:
+    # A deploy-site run that failed or was cancelled left nothing new to test.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Prod for schedule / manual-prod; dev for the post-deploy and PR runs.
+      TARGET: ${{ (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.target == 'prod')) && 'prod' || 'dev' }}
+    defaults:
+      run:
+        working-directory: tests/e2e
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Test the commit that was deployed, not whatever main has moved on to.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
+
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      - name: cypress run
+        env:
+          # Recording is opt-in (see tests/e2e/README.md); both must be set.
+          CYPRESS_PROJECT_ID: ${{ vars.CYPRESS_PROJECT_ID }}
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+        run: |
+          args=()
+          if [ "$TARGET" = "dev" ]; then
+            args+=(--config baseUrl=https://dev.cohns.net --spec 'cypress/e2e/site/**')
+          fi
+          if [ -n "$CYPRESS_PROJECT_ID" ] && [ -n "$CYPRESS_RECORD_KEY" ]; then
+            args+=(--record --tag "$TARGET,${GITHUB_EVENT_NAME}")
+          fi
+          npx cypress run --browser chrome "${args[@]}"
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: cypress-screenshots-${{ env.TARGET }}
+          path: tests/e2e/cypress/screenshots
+          if-no-files-found: ignore
+          retention-days: 14
